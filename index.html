@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cardwright</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <h1>Cardwright</h1>
+        <p id="cardSummary">Create or load a character card to begin.</p>
+      </div>
+      <div class="topbar-actions">
+        <button id="newCardBtn" class="button" type="button">New Card</button>
+        <label class="button primary">
+          Load Card
+          <input id="fileInput" type="file" accept=".json,.png,application/json,image/png">
+        </label>
+        <button id="downloadBtn" class="button" disabled>Export JSON</button>
+        <button id="downloadPngBtn" class="button" disabled>Export PNG</button>
+        <button id="settingsToggleBtn" class="button icon-button settings-toggle" type="button" aria-label="Open settings" title="Settings">◎</button>
+        <input id="avatarInput" type="file" accept="image/*">
+      </div>
+    </header>
+
+    <section class="workspace" aria-live="polite">
+      <aside class="sidebar">
+        <details class="panel avatar-panel">
+          <summary><span class="summary-icon" aria-hidden="true">◉</span><span>Avatar</span></summary>
+          <div class="avatar-body">
+            <div id="avatarPreview" class="avatar-preview" aria-label="Avatar preview">
+              <span class="avatar-placeholder">No avatar</span>
+            </div>
+            <button id="setAvatarBtn" class="button" type="button" disabled>Set / Crop Image</button>
+          </div>
+        </details>
+
+        <nav id="fieldNav" class="field-nav" aria-label="Card fields"></nav>
+      </aside>
+
+      <section class="editor">
+        <nav class="view-tabs" id="viewTabs" aria-label="Studio views">
+          <button class="view-tab" data-view="concept" type="button">Concept</button>
+          <button class="view-tab active" data-view="card" type="button">Card</button>
+          <button class="view-tab" data-view="lore" type="button">Lorebook</button>
+          <button class="view-tab" data-view="audit" type="button">Audit</button>
+        </nav>
+
+        <div id="conceptView" class="view hidden">
+          <div class="panel concept-panel">
+            <div class="ai-header">
+              <div>
+                <p class="eyebrow">Start here</p>
+                <h2>Concept / Brief</h2>
+              </div>
+              <button id="generateBtn" class="button primary" type="button" disabled>Generate card from concept</button>
+            </div>
+            <p class="field-guidance">Describe your character idea — who they are, the vibe, the setting, what makes them fun to roleplay. The AI drafts all the card fields from this, and keeps it as context for later edits.</p>
+            <textarea id="conceptInput" placeholder="e.g. A weary lighthouse keeper on a haunted coast who speaks in clipped sentences and secretly writes poetry. Drawn to {{user}} but terrified of being known..." disabled></textarea>
+            <label id="conceptOutputLabel">Generated drafts</label>
+            <div id="conceptResults" class="concept-results">Write a concept above and click “Generate card from concept” to draft the fields.</div>
+            <pre id="conceptLog" class="log-output" aria-live="polite"></pre>
+          </div>
+        </div>
+
+        <div id="cardView" class="view card-view">
+          <div class="panel field-panel">
+            <div class="field-header">
+              <div>
+                <p class="eyebrow" id="fieldKey">No field selected</p>
+                <h2 id="fieldTitle">Load a card</h2>
+              </div>
+              <span id="fieldStats" class="stats">0 chars</span>
+            </div>
+            <div id="altGreetingControls" class="alt-greeting-controls hidden" aria-label="Alternate greeting controls">
+              <button id="prevGreetingBtn" class="button" type="button">Previous</button>
+              <span id="altGreetingStatus" class="stats">0 greetings</span>
+              <button id="nextGreetingBtn" class="button" type="button">Next</button>
+              <button id="addGreetingBtn" class="button primary" type="button">Add</button>
+              <button id="deleteGreetingBtn" class="button danger" type="button">Delete</button>
+            </div>
+            <textarea id="fieldEditor" disabled placeholder="Card field content will appear here."></textarea>
+          </div>
+
+          <div class="panel ai-panel">
+            <div class="ai-header">
+              <div>
+                <p class="eyebrow" id="aiFieldScope">AI edit</p>
+                <h2 id="aiFieldTitle">Revise selected field</h2>
+              </div>
+              <button id="auditBtn" class="button" disabled>Audit Full Card</button>
+            </div>
+            <p id="aiFieldGuidance" class="field-guidance">Select a field to load field-specific AI instructions.</p>
+
+            <div class="quick-actions">
+              <button class="button ai-action" data-action="rewrite" disabled>Rewrite</button>
+              <button class="button ai-action" data-action="expand" disabled>Expand</button>
+              <button class="button ai-action" data-action="condense" disabled>Condense</button>
+              <button class="button ai-action" data-action="voice" disabled>Strengthen Voice</button>
+            </div>
+
+            <label for="instructionInput">Custom instruction</label>
+            <div class="instruction-row">
+              <textarea id="instructionInput" placeholder="Make this more gothic, concise, warmer..."></textarea>
+              <button id="customAiBtn" class="button primary" disabled>Run</button>
+            </div>
+
+            <div id="draftPanel" class="draft-panel hidden">
+              <div class="draft-header">
+                <strong>AI Draft</strong>
+                <div>
+                  <button id="applyDraftBtn" class="button primary">Apply</button>
+                  <button id="discardDraftBtn" class="button">Discard</button>
+                </div>
+              </div>
+              <textarea id="draftEditor"></textarea>
+            </div>
+
+            <label id="outputLabel" for="logOutput">AI Output</label>
+            <pre id="logOutput" class="log-output" aria-live="polite"></pre>
+          </div>
+        </div>
+
+        <div id="loreView" class="view hidden">
+          <div class="panel lore-head">
+            <div class="lore-head-row">
+              <div class="lore-head-name">
+                <label for="loreNameInput">Lorebook name</label>
+                <input id="loreNameInput" type="text" placeholder="Unnamed lorebook" disabled>
+              </div>
+              <div class="lore-head-actions">
+                <span id="loreSummary" class="stats">No lorebook</span>
+                <button id="addEntryBtn" class="button primary" type="button" disabled>Add Entry</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="lore-body">
+            <div class="panel lore-list-panel">
+              <nav id="loreList" class="field-nav" aria-label="Lorebook entries"></nav>
+            </div>
+
+            <div class="panel lore-editor-panel">
+              <p id="loreEmpty" class="lore-empty">Load a card, then add or select a lorebook entry to edit it.</p>
+
+              <div id="loreEntryForm" class="lore-form hidden">
+                <div class="field-header">
+                  <div>
+                    <p class="eyebrow" id="entryEyebrow">Entry</p>
+                    <h2 id="entryTitleHeading">Lorebook entry</h2>
+                  </div>
+                  <span id="entryStats" class="stats">0 chars</span>
+                </div>
+
+                <label for="entryName">Title / comment
+                  <input id="entryName" type="text" placeholder="e.g. The Iron Quarter">
+                </label>
+
+                <label for="entryKeys">Trigger keywords (comma-separated)
+                  <input id="entryKeys" type="text" placeholder="iron quarter, iron quarters">
+                </label>
+
+                <label for="entrySecondary">Secondary keywords (AND filter, optional)
+                  <input id="entrySecondary" type="text" placeholder="city, district">
+                </label>
+
+                <label for="entryContent">Content
+                  <textarea id="entryContent" placeholder="What the AI should know when this entry triggers..."></textarea>
+                </label>
+
+                <div class="lore-form-row checks">
+                  <label class="inline"><input id="entryEnabled" type="checkbox"> Enabled</label>
+                  <label class="inline"><input id="entryConstant" type="checkbox"> Constant (always on)</label>
+                  <label class="inline"><input id="entryCase" type="checkbox"> Case sensitive</label>
+                </div>
+
+                <div class="lore-form-row">
+                  <label for="entryPosition">Position
+                    <select id="entryPosition">
+                      <option value="before_char">Before character defs</option>
+                      <option value="after_char">After character defs</option>
+                    </select>
+                  </label>
+                  <label for="entryOrder">Insertion order
+                    <input id="entryOrder" type="number" value="100">
+                  </label>
+                </div>
+
+                <div class="lore-form-actions">
+                  <button id="entryAiBtn" class="button" type="button">Improve content with AI</button>
+                  <button id="deleteEntryBtn" class="button danger" type="button">Delete entry</button>
+                </div>
+
+                <pre id="loreLog" class="log-output" aria-live="polite"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="auditView" class="view hidden">
+          <div class="panel audit-panel">
+            <div class="ai-header">
+              <div>
+                <p class="eyebrow">Local analysis</p>
+                <h2>Card &amp; lorebook audit</h2>
+              </div>
+              <button id="runLocalAuditBtn" class="button primary" type="button" disabled>Run Audit</button>
+            </div>
+            <p class="field-guidance">Runs entirely offline — no AI call. Checks required fields, token budgets, placeholder text, {{user}} impersonation, and lorebook health.</p>
+            <div id="auditReport" class="audit-report">Load a card and click “Run Audit” to analyze it.</div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="settingsOverlay" class="settings-overlay hidden" aria-hidden="true">
+    <section class="settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <header class="settings-drawer-head">
+        <div>
+          <p class="eyebrow">Cardwright</p>
+          <h2 id="settingsTitle">Settings</h2>
+        </div>
+        <button id="settingsCloseBtn" class="button icon-button" type="button" aria-label="Close settings" title="Close">×</button>
+      </header>
+
+      <div class="settings-group">
+        <h3>AI Provider</h3>
+        <button id="lmStudioPresetBtn" class="button preset-button" type="button">Use LM Studio</button>
+
+        <label for="baseUrlInput">OpenAI-compatible base URL</label>
+        <input id="baseUrlInput" type="url" value="http://127.0.0.1:1234/v1">
+
+        <label for="modelInput">Model</label>
+        <input id="modelInput" type="text" value="local-model">
+
+        <label for="apiKeyInput">API key</label>
+        <input id="apiKeyInput" type="password" placeholder="Optional for LM Studio">
+
+        <button id="saveSettingsBtn" class="button primary" type="button">Save Settings</button>
+        <p class="fineprint">For LM Studio, start its local server and leave the API key blank. Requests go through <code>server.mjs</code>.</p>
+      </div>
+
+      <div class="settings-group">
+        <h3>Server</h3>
+        <button id="stopServerBtn" class="button danger preset-button" type="button">Stop Server</button>
+        <p class="fineprint">Stopping the server closes this local session until you start Cardwright again.</p>
+      </div>
+    </section>
+  </div>
+
+  <script src="./app.js" type="module"></script>
+</body>
+</html>
