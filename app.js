@@ -121,6 +121,7 @@ const els = {
   applyDraftBtn: document.getElementById('applyDraftBtn'),
   discardDraftBtn: document.getElementById('discardDraftBtn'),
   outputLabel: document.getElementById('outputLabel'),
+  copyOutputBtn: document.getElementById('copyOutputBtn'),
   logOutput: document.getElementById('logOutput'),
   viewTabs: [...document.querySelectorAll('.view-tab')],
   cardView: document.getElementById('cardView'),
@@ -273,6 +274,7 @@ els.customAiBtn.addEventListener('click', () => {
 });
 
 els.auditBtn.addEventListener('click', runAudit);
+els.copyOutputBtn.addEventListener('click', copyAiOutput);
 
 els.viewTabs.forEach((tab) => {
   tab.addEventListener('click', () => setView(tab.dataset.view));
@@ -1766,6 +1768,32 @@ function setBusy(isBusy) {
 
 function log(message) {
   els.logOutput.textContent = message;
+  els.copyOutputBtn.disabled = !message;
+  resetCopyOutputButton();
+}
+
+async function copyAiOutput() {
+  const text = els.logOutput.textContent.trim();
+  if (!text) return;
+
+  try {
+    await navigator.clipboard.writeText(text);
+    els.copyOutputBtn.textContent = '✓';
+    els.copyOutputBtn.title = 'Copied';
+    els.copyOutputBtn.setAttribute('aria-label', 'AI output copied');
+    setTimeout(resetCopyOutputButton, 1200);
+  } catch {
+    els.copyOutputBtn.textContent = '!';
+    els.copyOutputBtn.title = 'Could not copy';
+    els.copyOutputBtn.setAttribute('aria-label', 'Could not copy AI output');
+    setTimeout(resetCopyOutputButton, 1600);
+  }
+}
+
+function resetCopyOutputButton() {
+  els.copyOutputBtn.textContent = '⧉';
+  els.copyOutputBtn.title = 'Copy AI output';
+  els.copyOutputBtn.setAttribute('aria-label', 'Copy AI output');
 }
 
 function escapeHtml(value) {

@@ -931,6 +931,24 @@ textarea:focus {
   align-self: end;
 }
 
+.output-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.output-header label {
+  margin-bottom: 0;
+}
+
+.copy-output {
+  min-height: 30px;
+  inline-size: 32px;
+  min-inline-size: 32px;
+  color: var(--accent-2);
+}
+
 .draft-panel {
   display: grid;
   gap: 10px;

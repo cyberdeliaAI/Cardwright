@@ -119,7 +119,10 @@
               <textarea id="draftEditor"></textarea>
             </div>
 
-            <label id="outputLabel" for="logOutput">AI Output</label>
+            <div class="output-header">
+              <label id="outputLabel" for="logOutput">AI Output</label>
+              <button id="copyOutputBtn" class="button icon-button copy-output" type="button" aria-label="Copy AI output" title="Copy AI output" disabled>⧉</button>
+            </div>
             <pre id="logOutput" class="log-output" aria-live="polite"></pre>
           </div>
         </div>
