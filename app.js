@@ -321,13 +321,19 @@ els.entryOrder.addEventListener('change', () => updateEntry((e) => { e.insertion
 els.runLocalAuditBtn.addEventListener('click', renderAudit);
 
 els.auditReport.addEventListener('click', (event) => {
-  const target = event.target.closest('.goto');
-  if (!target || !target.dataset.field) return;
-  setView('card'); // syncs the current editor before we change the selected field
-  selectedField = target.dataset.field;
-  if (selectedField === 'alternate_greetings') clampGreetingIndex();
-  renderFieldNav();
-  renderSelectedField();
+  const fixTarget = event.target.closest('.fix-issue');
+  if (fixTarget?.dataset.field) {
+    fixAuditIssue({
+      field: fixTarget.dataset.field,
+      message: fixTarget.dataset.message || '',
+      severity: fixTarget.dataset.severity || 'info',
+    });
+    return;
+  }
+
+  const gotoTarget = event.target.closest('.goto');
+  if (!gotoTarget || !gotoTarget.dataset.field) return;
+  selectAuditField(gotoTarget.dataset.field);
 });
 
 els.applyDraftBtn.addEventListener('click', () => {
@@ -993,18 +999,85 @@ function buildAuditHtml(report) {
   const sorted = [...issues].sort((a, b) => order[a.severity] - order[b.severity]);
 
   const rows = sorted.map((issue) => {
-    const goto = issue.field
-      ? `<button class="goto" data-field="${escapeHtml(issue.field)}">→ field</button>`
+    const actions = issue.field
+      ? `
+        <span class="audit-actions">
+          <button class="fix-issue" type="button" data-field="${escapeHtml(issue.field)}" data-severity="${escapeHtml(issue.severity)}" data-message="${escapeHtml(issue.message)}">Fix with AI</button>
+          <button class="goto" type="button" data-field="${escapeHtml(issue.field)}">→ field</button>
+        </span>`
       : '<span></span>';
     return `
       <div class="audit-issue">
         <span class="dot ${issue.severity}"></span>
         <span>${escapeHtml(issue.message)}</span>
-        ${goto}
+        ${actions}
       </div>`;
   }).join('');
 
   return `${head}<div class="audit-group"><h3>Issues (${issues.length})</h3>${rows}</div>`;
+}
+
+function selectAuditField(field) {
+  setView('card'); // syncs the current editor before we change the selected field
+  selectedField = field;
+  if (selectedField === 'alternate_greetings') clampGreetingIndex();
+  renderFieldNav();
+  renderSelectedField();
+}
+
+async function fixAuditIssue({ field, message, severity }) {
+  if (!card || !field) return;
+  syncEditorToCard();
+  selectAuditField(field);
+
+  const def = FIELD_DEFS.find((item) => item.key === selectedField);
+  const fieldHelp = getFieldHelp(selectedField);
+  const fieldLabel = def?.label || selectedField;
+  const current = getEditorValue(selectedField);
+
+  els.outputLabel.textContent = `${fieldLabel} Audit Fix`;
+  log(`Creating an AI fix for ${fieldLabel}: ${message}`);
+  setBusy(true);
+
+  try {
+    const content = await callAi([
+      { role: 'system', content: buildSystemPrompt() },
+      {
+        role: 'user',
+        content: [
+          'Fix this single audit issue by revising only the selected field.',
+          `Audit severity: ${severity}`,
+          `Audit issue: ${message}`,
+          `Field key: ${selectedField}`,
+          `Field label: ${fieldLabel}`,
+          `Field-specific rules: ${fieldHelp.instruction}`,
+          'Return only the complete revised field text. Do not wrap it in markdown fences.',
+          'Preserve established facts, voice, placeholders like {{char}} and {{user}}, and useful existing content.',
+          'Make the smallest useful change that resolves the issue. If the field is empty, create concise content consistent with the full card context.',
+          '',
+          'Current field:',
+          current || '(empty)',
+          '',
+          'Full card context:',
+          summarizeCardForPrompt(),
+        ].join('\n'),
+      },
+    ]);
+
+    pendingDraft = {
+      field: selectedField,
+      content,
+      greetingIndex: selectedField === 'alternate_greetings' ? selectedGreetingIndex : undefined,
+    };
+    els.draftEditor.value = content;
+    els.draftPanel.classList.remove('hidden');
+    els.outputLabel.textContent = `${fieldLabel} Audit Fix`;
+    log('Audit fix draft ready. Review it before applying.');
+  } catch (error) {
+    log(`Audit fix failed: ${error.message}`);
+  } finally {
+    setBusy(false);
+  }
 }
 
 async function runFieldAction(action, customInstruction = '') {

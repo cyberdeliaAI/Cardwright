@@ -674,18 +674,37 @@ label.inline input {
 .audit-issue .dot.warning { background: #e0b84f; }
 .audit-issue .dot.info { background: var(--accent-2); }
 
-.audit-issue .goto {
+.audit-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.audit-issue .goto,
+.audit-issue .fix-issue {
   border: 1px solid var(--line);
   border-radius: 5px;
   padding: 4px 8px;
   background: var(--panel);
-  color: var(--accent-2);
   cursor: pointer;
   font-size: 12px;
   white-space: nowrap;
 }
 
-.audit-issue .goto:hover {
+.audit-issue .goto {
+  color: var(--accent-2);
+}
+
+.audit-issue .fix-issue {
+  color: #06120b;
+  background: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 65%, white);
+  font-weight: 700;
+}
+
+.audit-issue .goto:hover,
+.audit-issue .fix-issue:hover {
   border-color: var(--accent-2);
 }
 

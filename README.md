@@ -10,7 +10,7 @@ A small standalone character card editor (and lorebook authoring tool) focused o
 2. In the **Concept** tab, describe your character idea and click **Generate card from concept** — the AI drafts every field for you to review and apply. The concept is saved and fed into all later AI edits.
 3. Edit the card fields directly. (Or skip the concept and load an existing card from `.json` or a metadata-bearing `.png`.)
 4. Edit the embedded lorebook (`character_book`): add/remove entries, keywords, secondary keys, position, order, and constant/triggered settings.
-5. Run a local, offline **Audit** (no AI call) that checks required fields, token budgets, placeholder text, `{{user}}` impersonation, and lorebook health, scoring the card out of 100.
+5. Run a local, offline **Audit** (no AI call) that checks required fields, token budgets, placeholder text, `{{user}}` impersonation, and lorebook health, scoring the card out of 100. Field-level issues can be sent to AI as reviewable fix drafts.
 6. Ask LM Studio, or another OpenAI-compatible model, to revise one selected field, improve a lorebook entry, or audit the card.
 7. Set an avatar image and crop it to the 2:3 portrait ratio used by character cards.
 8. Export the edited card — lorebook included — as JSON, **or as a PNG** with the card embedded in a `chara` tEXt chunk (re-imports here and in SillyTavern).
@@ -25,7 +25,7 @@ The editor is split into four tabs:
 - **Concept** — your idea/brief and one-click card generation.
 - **Card** — the character fields, with live token estimates per field.
 - **Lorebook** — the embedded World Info entries.
-- **Audit** — the offline quality report; each issue links straight to the field it concerns.
+- **Audit** — the offline quality report; each field-level issue links straight to the field it concerns and can generate an AI fix draft.
 
 Token counts are estimates (~4 characters per token) since no model tokenizer runs offline.
 
