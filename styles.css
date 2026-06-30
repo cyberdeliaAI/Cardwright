@@ -72,6 +72,80 @@ h1 {
   font-weight: 620;
 }
 
+.topbar-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ai-status {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 9px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.ai-status-dot {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.ai-status.connecting {
+  border-color: #4e7fa4;
+  color: var(--accent-2);
+}
+
+.ai-status.connecting .ai-status-dot,
+.ai-status.running .ai-status-dot {
+  animation: pulse-status 1s ease-in-out infinite;
+}
+
+.ai-status.connecting .ai-status-dot {
+  background: var(--accent-2);
+}
+
+.ai-status.running {
+  border-color: color-mix(in srgb, var(--accent) 65%, white);
+  color: var(--accent);
+}
+
+.ai-status.running .ai-status-dot,
+.ai-status.done .ai-status-dot {
+  background: var(--accent);
+}
+
+.ai-status.error {
+  border-color: color-mix(in srgb, var(--danger) 65%, white);
+  color: var(--danger);
+}
+
+.ai-status.error .ai-status-dot {
+  background: var(--danger);
+}
+
+@keyframes pulse-status {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.16);
+  }
+}
+
 h2 {
   margin-top: 4px;
   font-size: 18px;

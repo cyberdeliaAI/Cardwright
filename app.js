@@ -81,6 +81,8 @@ const FIELD_GUIDANCE = {
 
 const els = {
   appVersion: document.getElementById('appVersion'),
+  aiStatus: document.getElementById('aiStatus'),
+  aiStatusText: document.getElementById('aiStatusText'),
   newCardBtn: document.getElementById('newCardBtn'),
   fileInput: document.getElementById('fileInput'),
   downloadBtn: document.getElementById('downloadBtn'),
@@ -166,6 +168,7 @@ let currentView = 'card';
 let selectedEntryIndex = 0;
 let avatar = null; // { image: HTMLImageElement, dataUrl: string }
 let saveTimer = null;
+let aiStatusTimer = null;
 
 const STORAGE_CARD = 'cardwright_card';
 const STORAGE_AVATAR = 'cardwright_avatar';
@@ -1219,33 +1222,41 @@ function summarizeCardForPrompt(limit = 7000) {
 }
 
 async function callAi(messages) {
-  const settings = await getResolvedSettings();
-  const response = await fetch('/api/ai', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      baseUrl: settings.baseUrl,
-      apiKey: settings.apiKey,
-      model: settings.model,
-      messages,
-    }),
-  });
-
-  const text = await response.text();
-  let data;
   try {
-    data = JSON.parse(text);
-  } catch {
-    data = { error: text };
-  }
+    setAiStatus('connecting', 'Connecting to AI...');
+    const settings = await getResolvedSettings();
+    setAiStatus('running', `Generating with ${settings.model || 'AI'}...`);
+    const response = await fetch('/api/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        baseUrl: settings.baseUrl,
+        apiKey: settings.apiKey,
+        model: settings.model,
+        messages,
+      }),
+    });
 
-  if (!response.ok) {
-    throw new Error(data.error?.message || data.error || `HTTP ${response.status}`);
-  }
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { error: text };
+    }
 
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('The model returned an empty response.');
-  return stripReasoning(content);
+    if (!response.ok) {
+      throw new Error(data.error?.message || data.error || `HTTP ${response.status}`);
+    }
+
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error('The model returned an empty response.');
+    setAiStatus('done', 'AI response ready', { temporary: true });
+    return stripReasoning(content);
+  } catch (error) {
+    setAiStatus('error', 'AI request failed');
+    throw error;
+  }
 }
 
 // Strip reasoning/"thinking" blocks so chain-of-thought from models like Qwen3
@@ -1289,6 +1300,7 @@ async function autoDetectModel({ silent = false } = {}) {
   if (!isLocalBaseUrl(settings.baseUrl)) return '';
 
   try {
+    if (!silent) setAiStatus('connecting', 'Checking LM Studio...');
     const response = await fetch('/api/models', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1304,12 +1316,15 @@ async function autoDetectModel({ silent = false } = {}) {
       els.modelInput.value = data.selectedModel;
       saveSettings();
       if (!silent) log(`Loaded LM Studio model: ${data.selectedModel}`);
+      if (!silent) setAiStatus('done', `LM Studio: ${data.selectedModel}`, { temporary: true });
       return data.selectedModel;
     }
 
     if (!silent) log('LM Studio is reachable, but no chat model was listed.');
+    if (!silent) setAiStatus('error', 'No LM Studio chat model');
   } catch (error) {
     if (!silent) log(`Could not detect LM Studio model: ${error.message}`);
+    if (!silent) setAiStatus('error', 'LM Studio not reachable');
   }
 
   return '';
@@ -1764,6 +1779,15 @@ function setBusy(isBusy) {
   els.aiActions.forEach((button) => { button.disabled = isBusy || !card; });
   els.customAiBtn.disabled = isBusy || !card;
   els.auditBtn.disabled = isBusy || !card;
+}
+
+function setAiStatus(state, text, { temporary = false } = {}) {
+  clearTimeout(aiStatusTimer);
+  els.aiStatus.className = `ai-status ${state}`;
+  els.aiStatusText.textContent = text;
+  if (temporary) {
+    aiStatusTimer = setTimeout(() => setAiStatus('idle', 'AI idle'), 2600);
+  }
 }
 
 function log(message) {

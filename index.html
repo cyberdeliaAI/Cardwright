@@ -11,7 +11,13 @@
     <header class="topbar">
       <div>
         <h1 class="brand-title">Cardwright <span id="appVersion" class="app-version">v1.0.0</span></h1>
-        <p id="cardSummary">Create or load a character card to begin.</p>
+        <div class="topbar-meta">
+          <p id="cardSummary">Create or load a character card to begin.</p>
+          <span id="aiStatus" class="ai-status idle" role="status" aria-live="polite">
+            <span class="ai-status-dot" aria-hidden="true"></span>
+            <span id="aiStatusText">AI idle</span>
+          </span>
+        </div>
       </div>
       <div class="topbar-actions">
         <button id="newCardBtn" class="button" type="button">New Card</button>
