@@ -1,8 +1,24 @@
 {
   "name": "cardwright",
   "version": "1.0.0",
+  "description": "Standalone Character Card V2 editor with LM Studio AI editing, lorebook support, audit tools, and PNG export.",
   "private": true,
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cyberdeliaAI/Cardwright.git"
+  },
+  "keywords": [
+    "character-card",
+    "character-card-v2",
+    "sillytavern",
+    "lm-studio",
+    "local-ai",
+    "roleplay",
+    "lorebook",
+    "png-metadata"
+  ],
   "scripts": {
     "start": "node server.mjs"
   }

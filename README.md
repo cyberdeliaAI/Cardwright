@@ -1,6 +1,10 @@
 # Cardwright
 
+**Current version:** 1.0.0
+
 A small standalone character card editor (and lorebook authoring tool) focused on one workflow:
+
+![Cardwright screenshot](examples/screenshot01.png)
 
 1. Start a blank card with **New Card** (lands on the **Concept** tab), or load an existing one. Your work is auto-saved to the browser and restored on the next visit.
 2. In the **Concept** tab, describe your character idea and click **Generate card from concept** — the AI drafts every field for you to review and apply. The concept is saved and fed into all later AI edits.

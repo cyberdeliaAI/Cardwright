@@ -60,6 +60,18 @@ h1 {
   font-weight: 720;
 }
 
+.brand-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.app-version {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 620;
+}
+
 h2 {
   margin-top: 4px;
   font-size: 18px;

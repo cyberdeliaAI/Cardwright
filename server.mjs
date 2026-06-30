@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { APP_VERSION } from './version.js';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const port = Number(process.env.PORT || 8787);
@@ -130,6 +131,7 @@ async function handleModels(req, res) {
 
 function handleConfig(req, res) {
   send(req, res, 200, JSON.stringify({
+    version: APP_VERSION,
     baseUrl: process.env.OPENAI_BASE_URL || defaultBaseUrl,
     model: process.env.OPENAI_MODEL || defaultModel,
     hasServerApiKey: !!process.env.OPENAI_API_KEY,
@@ -245,5 +247,5 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`Cardwright is running at http://${host}:${port}`);
+  console.log(`Cardwright v${APP_VERSION} is running at http://${host}:${port}`);
 });

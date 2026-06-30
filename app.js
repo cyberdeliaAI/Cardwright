@@ -2,6 +2,7 @@ import { estimateTokens } from './token-utils.js';
 import { runLocalAudit } from './audit.js';
 import { openCropper } from './cropper.js';
 import { embedCharaChunk } from './png.js';
+import { APP_VERSION } from './version.js';
 
 const FIELD_DEFS = [
   { key: 'name', label: 'Name', type: 'text' },
@@ -79,6 +80,7 @@ const FIELD_GUIDANCE = {
 };
 
 const els = {
+  appVersion: document.getElementById('appVersion'),
   newCardBtn: document.getElementById('newCardBtn'),
   fileInput: document.getElementById('fileInput'),
   downloadBtn: document.getElementById('downloadBtn'),
@@ -172,6 +174,7 @@ const LEGACY_STORAGE_AVATAR = 'ccs_standalone_avatar';
 const LEGACY_STORAGE_SETTINGS = 'ccs_standalone_settings';
 
 await loadSettings();
+els.appVersion.textContent = `v${APP_VERSION}`;
 els.setAvatarBtn.disabled = false;
 const restoredView = restoreCard();
 renderFieldNav();

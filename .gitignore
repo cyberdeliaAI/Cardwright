@@ -34,6 +34,5 @@ custom_notes.md
 *.log
 
 # Other Directories
-examples/
 SillyTavernDocs/
 tests/
