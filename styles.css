@@ -814,7 +814,8 @@ summary {
 }
 
 input,
-textarea {
+textarea,
+select {
   inline-size: 100%;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -823,23 +824,64 @@ textarea {
   outline: none;
 }
 
-input {
+input,
+select {
   min-height: 38px;
   padding: 8px 10px;
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   border-color: var(--accent-2);
 }
 
-.settings-drawer input {
+.settings-drawer input,
+.settings-drawer select {
   margin-bottom: 12px;
 }
 
 .preset-button {
   width: 100%;
   margin-bottom: 12px;
+}
+
+.settings-button-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.provider-status {
+  margin: 10px 0 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #101417;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.provider-status.ok {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  color: var(--accent);
+}
+
+.provider-status.warn {
+  border-color: color-mix(in srgb, #e0b84f 55%, var(--line));
+  color: #e0b84f;
+}
+
+.provider-status.error {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--line));
+  color: var(--danger);
+}
+
+.provider-status.working {
+  border-color: color-mix(in srgb, var(--accent-2) 55%, var(--line));
+  color: var(--accent-2);
 }
 
 .fineprint {

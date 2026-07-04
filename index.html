@@ -238,18 +238,34 @@
 
       <div class="settings-group">
         <h3>AI Provider</h3>
-        <button id="lmStudioPresetBtn" class="button preset-button" type="button">Use LM Studio</button>
+        <label for="providerInput">Provider</label>
+        <select id="providerInput">
+          <option value="lmstudio">LM Studio</option>
+          <option value="omlx">oMLX</option>
+          <option value="ollama">Ollama</option>
+          <option value="openai">OpenAI</option>
+          <option value="custom">Custom OpenAI-compatible</option>
+        </select>
+
+        <div class="settings-button-row">
+          <button id="detectModelBtn" class="button" type="button">Detect Model</button>
+          <button id="testConnectionBtn" class="button" type="button">Test</button>
+        </div>
 
         <label for="baseUrlInput">OpenAI-compatible base URL</label>
         <input id="baseUrlInput" type="url" value="http://127.0.0.1:1234/v1">
 
         <label for="modelInput">Model</label>
-        <input id="modelInput" type="text" value="local-model">
+        <input id="modelInput" type="text" value="local-model" list="modelOptions">
+        <datalist id="modelOptions"></datalist>
+        <select id="modelSelect" class="hidden" aria-label="Detected models"></select>
 
         <label for="apiKeyInput">API key</label>
         <input id="apiKeyInput" type="password" placeholder="Optional for LM Studio">
 
         <button id="saveSettingsBtn" class="button primary" type="button">Save Settings</button>
+        <p id="providerStatus" class="provider-status">Provider idle.</p>
+        <p id="providerNote" class="fineprint">LM Studio provider. Load a model and start the Local Server, then Detect Model here.</p>
         <p class="fineprint">For LM Studio, start its local server and leave the API key blank. Requests go through <code>server.mjs</code>.</p>
       </div>
 

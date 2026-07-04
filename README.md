@@ -11,7 +11,7 @@ A small standalone character card editor (and lorebook authoring tool) focused o
 3. Edit the card fields directly. (Or skip the concept and load an existing card from `.json` or a metadata-bearing `.png`.)
 4. Edit the embedded lorebook (`character_book`): add/remove entries, keywords, secondary keys, position, order, and constant/triggered settings.
 5. Run a local, offline **Audit** (no AI call) that checks required fields, token budgets, placeholder text, `{{user}}` impersonation, and lorebook health, scoring the card out of 100. Field-level issues can be sent to AI as reviewable fix drafts.
-6. Ask LM Studio, or another OpenAI-compatible model, to revise one selected field, improve a lorebook entry, or audit the card.
+6. Ask LM Studio, oMLX, Ollama, OpenAI, or another OpenAI-compatible model to revise one selected field, improve a lorebook entry, or audit the card.
 7. Set an avatar image and crop it to the 2:3 portrait ratio used by character cards.
 8. Export the edited card — lorebook included — as JSON, **or as a PNG** with the card embedded in a `chara` tEXt chunk (re-imports here and in SillyTavern).
 
@@ -63,30 +63,40 @@ http://127.0.0.1:8787
 
 You can override the port with `PORT=...`, but the default is `8787`.
 
-## LM Studio setup
+## AI provider setup
 
-In LM Studio:
+Open the settings button (`◎`) in the top bar, choose a provider, then click
+**Detect Model** or **Test**.
+
+Supported provider presets:
+
+- **LM Studio:** `http://127.0.0.1:1234/v1`
+- **oMLX:** `http://127.0.0.1:8000/v1` (API key can be required by oMLX)
+- **Ollama:** `http://127.0.0.1:11434/v1`
+- **OpenAI:** `https://api.openai.com/v1` (API key required)
+- **Custom:** any OpenAI-compatible `/v1` endpoint
+
+For LM Studio:
 
 1. Load a chat/instruct model.
 2. Start the local server.
-3. Use this base URL in the app:
-
-```text
-http://127.0.0.1:1234/v1
-```
+3. Choose **LM Studio** and click **Detect Model**.
 
 The API key can stay blank for LM Studio. The default model value is
 `local-model`, but the app automatically asks LM Studio for `/v1/models` and
 fills the model field with the detected chat model.
 
-## Other AI setup
+For oMLX, start its OpenAI-compatible server, choose **oMLX**, and paste the
+oMLX API key if your oMLX server requires one.
 
-Open the settings button (`◎`) in the top bar. You can either:
+## Environment setup
+
+You can either:
 
 - enter an API key in the app's Settings panel for hosted providers, or
 - set environment variables before starting the server. The app reads
-  `OPENAI_BASE_URL` and `OPENAI_MODEL` as its defaults; `OPENAI_API_KEY` stays
-  server-side and is used when the API key field is blank:
+  `OPENAI_PROVIDER`, `OPENAI_BASE_URL`, and `OPENAI_MODEL` as its defaults;
+  `OPENAI_API_KEY` stays server-side and is used when the API key field is blank:
 
 ```bash
 OPENAI_API_KEY=sk-... node server.mjs
@@ -95,6 +105,7 @@ OPENAI_API_KEY=sk-... node server.mjs
 Optional environment variables:
 
 ```bash
+OPENAI_PROVIDER=lmstudio
 OPENAI_BASE_URL=http://127.0.0.1:1234/v1
 OPENAI_MODEL=local-model
 PORT=8787

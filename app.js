@@ -20,6 +20,40 @@ const FIELD_DEFS = [
 
 const DEFAULT_BASE_URL = 'http://127.0.0.1:1234/v1';
 const DEFAULT_MODEL = 'local-model';
+const DEFAULT_PROVIDER = 'lmstudio';
+
+const AI_PROVIDERS = {
+  lmstudio: {
+    label: 'LM Studio',
+    baseUrl: DEFAULT_BASE_URL,
+    model: DEFAULT_MODEL,
+    note: 'LM Studio provider. Load a model and start the Local Server, then Detect Model here.',
+  },
+  omlx: {
+    label: 'oMLX',
+    baseUrl: 'http://127.0.0.1:8000/v1',
+    model: DEFAULT_MODEL,
+    note: 'oMLX provider for MLX-format models on Apple Silicon. Add the oMLX API key if your server requires one.',
+  },
+  ollama: {
+    label: 'Ollama',
+    baseUrl: 'http://127.0.0.1:11434/v1',
+    model: DEFAULT_MODEL,
+    note: 'Ollama provider. Pull or run a model in Ollama, then Detect Model here.',
+  },
+  openai: {
+    label: 'OpenAI',
+    baseUrl: 'https://api.openai.com/v1',
+    model: 'gpt-4o-mini',
+    note: 'OpenAI hosted API. Paste an API key and set the model you want to use.',
+  },
+  custom: {
+    label: 'Custom OpenAI-compatible',
+    baseUrl: DEFAULT_BASE_URL,
+    model: DEFAULT_MODEL,
+    note: 'Custom OpenAI-compatible endpoint. Enter the base URL, API key if needed, and model.',
+  },
+};
 
 const FIELD_GUIDANCE = {
   name: {
@@ -105,10 +139,16 @@ const els = {
   addGreetingBtn: document.getElementById('addGreetingBtn'),
   deleteGreetingBtn: document.getElementById('deleteGreetingBtn'),
   fieldEditor: document.getElementById('fieldEditor'),
+  providerInput: document.getElementById('providerInput'),
   baseUrlInput: document.getElementById('baseUrlInput'),
   modelInput: document.getElementById('modelInput'),
+  modelOptions: document.getElementById('modelOptions'),
+  modelSelect: document.getElementById('modelSelect'),
   apiKeyInput: document.getElementById('apiKeyInput'),
-  lmStudioPresetBtn: document.getElementById('lmStudioPresetBtn'),
+  detectModelBtn: document.getElementById('detectModelBtn'),
+  testConnectionBtn: document.getElementById('testConnectionBtn'),
+  providerStatus: document.getElementById('providerStatus'),
+  providerNote: document.getElementById('providerNote'),
   saveSettingsBtn: document.getElementById('saveSettingsBtn'),
   stopServerBtn: document.getElementById('stopServerBtn'),
   auditBtn: document.getElementById('auditBtn'),
@@ -248,15 +288,19 @@ els.saveSettingsBtn.addEventListener('click', () => {
   log('Settings saved.');
 });
 
-els.lmStudioPresetBtn.addEventListener('click', () => {
-  els.baseUrlInput.value = DEFAULT_BASE_URL;
-  els.modelInput.value = DEFAULT_MODEL;
-  els.apiKeyInput.value = '';
+els.providerInput.addEventListener('change', () => {
+  applyProviderPreset(els.providerInput.value);
   saveSettings();
-  log('LM Studio preset saved. Detecting loaded model...');
-  autoDetectModel({ silent: false });
 });
 
+els.detectModelBtn.addEventListener('click', () => autoDetectModel({ silent: false, force: true }));
+els.testConnectionBtn.addEventListener('click', testAiConnection);
+els.modelSelect.addEventListener('change', () => {
+  if (!els.modelSelect.value) return;
+  els.modelInput.value = els.modelSelect.value;
+  saveSettings();
+  setProviderStatus(`Selected model: ${els.modelSelect.value}.`, 'ok');
+});
 els.stopServerBtn.addEventListener('click', stopServer);
 els.prevGreetingBtn.addEventListener('click', () => moveGreetingSelection(-1));
 els.nextGreetingBtn.addEventListener('click', () => moveGreetingSelection(1));
@@ -1230,6 +1274,7 @@ async function callAi(messages) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        provider: settings.provider,
         baseUrl: settings.baseUrl,
         apiKey: settings.apiKey,
         model: settings.model,
@@ -1289,22 +1334,26 @@ async function getResolvedSettings() {
 
 function getSettings() {
   return {
+    provider: els.providerInput.value || DEFAULT_PROVIDER,
     baseUrl: els.baseUrlInput.value.trim() || DEFAULT_BASE_URL,
     model: els.modelInput.value.trim() || DEFAULT_MODEL,
     apiKey: els.apiKeyInput.value.trim(),
   };
 }
 
-async function autoDetectModel({ silent = false } = {}) {
+async function autoDetectModel({ silent = false, force = false } = {}) {
   const settings = getSettings();
-  if (!isLocalBaseUrl(settings.baseUrl)) return '';
+  const provider = providerDef(settings.provider);
+  if (!force && !isLocalBaseUrl(settings.baseUrl)) return '';
 
   try {
-    if (!silent) setAiStatus('connecting', 'Checking LM Studio...');
+    if (!silent) setAiStatus('connecting', `Checking ${provider.label}...`);
+    if (!silent) setProviderStatus(`Detecting ${provider.label} models...`, 'working');
     const response = await fetch('/api/models', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        provider: settings.provider,
         baseUrl: settings.baseUrl,
         apiKey: settings.apiKey,
       }),
@@ -1312,22 +1361,60 @@ async function autoDetectModel({ silent = false } = {}) {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
 
+    if (data.baseUrl) els.baseUrlInput.value = data.baseUrl;
+    populateModelOptions(data.models || []);
     if (data.selectedModel) {
       els.modelInput.value = data.selectedModel;
+      if (els.modelSelect.value !== data.selectedModel) els.modelSelect.value = data.selectedModel;
       saveSettings();
-      if (!silent) log(`Loaded LM Studio model: ${data.selectedModel}`);
-      if (!silent) setAiStatus('done', `LM Studio: ${data.selectedModel}`, { temporary: true });
+      if (!silent) setProviderStatus(`${provider.label}: selected ${data.selectedModel}.`, 'ok');
+      if (!silent) setAiStatus('done', `${provider.label}: ${data.selectedModel}`, { temporary: true });
       return data.selectedModel;
     }
 
-    if (!silent) log('LM Studio is reachable, but no chat model was listed.');
-    if (!silent) setAiStatus('error', 'No LM Studio chat model');
+    if (!silent) setProviderStatus(`${provider.label} is reachable, but no models were returned.`, 'warn');
+    if (!silent) setAiStatus('error', `No ${provider.label} model`);
   } catch (error) {
-    if (!silent) log(`Could not detect LM Studio model: ${error.message}`);
-    if (!silent) setAiStatus('error', 'LM Studio not reachable');
+    if (!silent) setProviderStatus(`${provider.label} detect failed: ${error.message}`, 'error');
+    if (!silent) setAiStatus('error', `${provider.label} not reachable`);
   }
 
   return '';
+}
+
+async function testAiConnection() {
+  const settings = getSettings();
+  const provider = providerDef(settings.provider);
+  try {
+    setAiStatus('connecting', `Testing ${provider.label}...`);
+    setProviderStatus(`Testing ${provider.label} connection...`, 'working');
+    const response = await fetch('/api/models', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: settings.provider,
+        baseUrl: settings.baseUrl,
+        apiKey: settings.apiKey,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+    if (data.baseUrl) els.baseUrlInput.value = data.baseUrl;
+    populateModelOptions(data.models || []);
+    if (data.selectedModel && (!els.modelInput.value.trim() || els.modelInput.value.trim() === DEFAULT_MODEL)) {
+      els.modelInput.value = data.selectedModel;
+    }
+    if (els.modelInput.value.trim()) els.modelSelect.value = els.modelInput.value.trim();
+    const count = Array.isArray(data.models) ? data.models.length : 0;
+    setProviderStatus(count
+      ? `${provider.label} connection OK. ${count} model(s) available.`
+      : `${provider.label} connection OK, but no models were returned.`, count ? 'ok' : 'warn');
+    setAiStatus('done', `${provider.label} connection OK`, { temporary: true });
+    saveSettings();
+  } catch (error) {
+    setProviderStatus(`${provider.label} connection failed: ${error.message}`, 'error');
+    setAiStatus('error', `${provider.label} test failed`);
+  }
 }
 
 function isLocalBaseUrl(baseUrl) {
@@ -1339,19 +1426,91 @@ function isLocalBaseUrl(baseUrl) {
   }
 }
 
+function providerDef(provider) {
+  return AI_PROVIDERS[provider] || AI_PROVIDERS[DEFAULT_PROVIDER];
+}
+
+function applyProviderPreset(provider, { clearApiKey = false } = {}) {
+  const def = providerDef(provider);
+  els.providerInput.value = AI_PROVIDERS[provider] ? provider : DEFAULT_PROVIDER;
+  if (provider !== 'custom') {
+    els.baseUrlInput.value = def.baseUrl;
+    if (!els.modelInput.value.trim() || els.modelInput.value.trim() === DEFAULT_MODEL || def.model !== DEFAULT_MODEL) {
+      els.modelInput.value = def.model;
+    }
+  }
+  if (clearApiKey) els.apiKeyInput.value = '';
+  updateProviderUi();
+}
+
+function updateProviderUi() {
+  const def = providerDef(els.providerInput.value);
+  els.providerNote.textContent = def.note;
+  els.apiKeyInput.placeholder = els.providerInput.value === 'omlx'
+    ? 'oMLX API key, if required'
+    : (els.providerInput.value === 'openai' ? 'Required for OpenAI' : 'Optional for local providers');
+  setProviderStatus(`${def.label} idle.`, 'idle');
+}
+
+function populateModelOptions(models) {
+  els.modelOptions.innerHTML = '';
+  els.modelSelect.innerHTML = '';
+
+  const ids = models
+    .map((model) => (typeof model === 'string' ? model : model?.id))
+    .filter(Boolean);
+
+  if (!ids.length) {
+    els.modelSelect.classList.add('hidden');
+    return;
+  }
+
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Choose detected model...';
+  els.modelSelect.appendChild(placeholder);
+
+  const currentModel = els.modelInput.value.trim();
+  const seen = new Set();
+  for (const id of ids) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+
+    const datalistOption = document.createElement('option');
+    datalistOption.value = id;
+    els.modelOptions.appendChild(datalistOption);
+
+    const selectOption = document.createElement('option');
+    selectOption.value = id;
+    selectOption.textContent = id;
+    els.modelSelect.appendChild(selectOption);
+  }
+
+  els.modelSelect.classList.remove('hidden');
+  els.modelSelect.value = seen.has(currentModel) ? currentModel : '';
+}
+
+function setProviderStatus(message, state = 'idle') {
+  els.providerStatus.textContent = message;
+  els.providerStatus.className = `provider-status ${state}`;
+}
+
 async function loadSettings() {
   const serverConfig = await fetchServerConfig();
   const { raw, legacy } = getStoredValue(STORAGE_SETTINGS, LEGACY_STORAGE_SETTINGS);
   if (!raw) {
     applyServerConfig(serverConfig);
+    updateProviderUi();
     return;
   }
   try {
     const settings = JSON.parse(raw);
     applyServerConfig(serverConfig, settings);
+    if (settings.provider) els.providerInput.value = settings.provider;
     if (settings.baseUrl) els.baseUrlInput.value = settings.baseUrl;
     if (settings.model) els.modelInput.value = settings.model;
     if (settings.apiKey) els.apiKeyInput.value = settings.apiKey;
+    updateProviderUi();
     if (legacy) {
       localStorage.setItem(STORAGE_SETTINGS, raw);
       localStorage.removeItem(LEGACY_STORAGE_SETTINGS);
@@ -1376,11 +1535,15 @@ function applyServerConfig(config, settings = null) {
   if (!config) return;
 
   if (!settings) {
+    els.providerInput.value = config.provider || DEFAULT_PROVIDER;
     els.baseUrlInput.value = config.baseUrl || DEFAULT_BASE_URL;
     els.modelInput.value = config.model || DEFAULT_MODEL;
     return;
   }
 
+  if (config.provider && !settings.provider) {
+    settings.provider = config.provider;
+  }
   if (config.baseUrl && settings.baseUrl === DEFAULT_BASE_URL && config.baseUrl !== DEFAULT_BASE_URL) {
     settings.baseUrl = config.baseUrl;
   }

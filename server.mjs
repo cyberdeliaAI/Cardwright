@@ -9,6 +9,15 @@ const port = Number(process.env.PORT || 8787);
 const host = process.env.HOST || '127.0.0.1';
 const defaultBaseUrl = 'http://127.0.0.1:1234/v1';
 const defaultModel = 'local-model';
+const defaultProvider = 'lmstudio';
+
+const aiProviders = {
+  lmstudio: { label: 'LM Studio', baseUrl: 'http://127.0.0.1:1234/v1', model: defaultModel },
+  omlx: { label: 'oMLX', baseUrl: 'http://127.0.0.1:8000/v1', model: defaultModel },
+  ollama: { label: 'Ollama', baseUrl: 'http://127.0.0.1:11434/v1', model: defaultModel },
+  openai: { label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+  custom: { label: 'Custom OpenAI-compatible', baseUrl: defaultBaseUrl, model: defaultModel },
+};
 
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -43,6 +52,31 @@ function isLocalBaseUrl(baseUrl) {
   } catch {
     return false;
   }
+}
+
+function providerConfig(provider) {
+  return aiProviders[String(provider || defaultProvider).toLowerCase()] || aiProviders[defaultProvider];
+}
+
+function normalizeBaseUrl(baseUrl, provider) {
+  const fallback = providerConfig(provider).baseUrl;
+  let base = String(baseUrl || fallback).trim().replace(/\/+$/, '');
+  try {
+    const url = new URL(base);
+    if (!url.pathname || url.pathname === '/') {
+      url.pathname = '/v1';
+      base = url.toString().replace(/\/+$/, '');
+    }
+  } catch {
+    base = fallback;
+  }
+  return base;
+}
+
+function resolveRequestedModel(provider, requestedModel) {
+  const trimmed = String(requestedModel || '').trim();
+  if (trimmed && trimmed !== defaultModel) return trimmed;
+  return providerConfig(provider).model || defaultModel;
 }
 
 function buildProviderHeaders(apiKey) {
@@ -104,7 +138,8 @@ async function handleModels(req, res) {
     return;
   }
 
-  const baseUrl = (payload.baseUrl || process.env.OPENAI_BASE_URL || defaultBaseUrl).replace(/\/+$/, '');
+  const provider = payload.provider || process.env.OPENAI_PROVIDER || defaultProvider;
+  const baseUrl = normalizeBaseUrl(payload.baseUrl || process.env.OPENAI_BASE_URL, provider);
   const apiKey = payload.apiKey || process.env.OPENAI_API_KEY || '';
 
   if (!apiKey && !isLocalBaseUrl(baseUrl)) {
@@ -119,6 +154,8 @@ async function handleModels(req, res) {
     send(req, res, 200, JSON.stringify({
       models: Array.isArray(models.data) ? models.data : [],
       selectedModel: chooseChatModel(models),
+      provider,
+      baseUrl,
     }), {
       'Content-Type': 'application/json',
     });
@@ -130,10 +167,13 @@ async function handleModels(req, res) {
 }
 
 function handleConfig(req, res) {
+  const provider = process.env.OPENAI_PROVIDER || defaultProvider;
   send(req, res, 200, JSON.stringify({
     version: APP_VERSION,
-    baseUrl: process.env.OPENAI_BASE_URL || defaultBaseUrl,
-    model: process.env.OPENAI_MODEL || defaultModel,
+    provider,
+    providers: aiProviders,
+    baseUrl: normalizeBaseUrl(process.env.OPENAI_BASE_URL, provider),
+    model: process.env.OPENAI_MODEL || providerConfig(provider).model || defaultModel,
     hasServerApiKey: !!process.env.OPENAI_API_KEY,
   }), {
     'Content-Type': 'application/json',
@@ -151,9 +191,11 @@ async function handleAi(req, res) {
     return;
   }
 
-  const baseUrl = (payload.baseUrl || process.env.OPENAI_BASE_URL || defaultBaseUrl).replace(/\/+$/, '');
+  const provider = payload.provider || process.env.OPENAI_PROVIDER || defaultProvider;
+  const baseUrl = normalizeBaseUrl(payload.baseUrl || process.env.OPENAI_BASE_URL, provider);
   const apiKey = payload.apiKey || process.env.OPENAI_API_KEY || '';
-  const model = await resolveModel(baseUrl, apiKey, payload.model || process.env.OPENAI_MODEL || defaultModel);
+  const requestedModel = resolveRequestedModel(provider, payload.model || process.env.OPENAI_MODEL);
+  const model = await resolveModel(baseUrl, apiKey, requestedModel);
 
   if (!apiKey && !isLocalBaseUrl(baseUrl)) {
     send(req, res, 400, JSON.stringify({ error: 'Missing API key. Add it in Settings or set OPENAI_API_KEY.' }), {
