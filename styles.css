@@ -354,9 +354,11 @@ label.button.primary {
 }
 
 .search-panel {
+  min-width: 0;
   padding: 12px;
   display: grid;
   gap: 8px;
+  overflow: hidden;
 }
 
 .search-panel label {
@@ -390,13 +392,15 @@ label.button.primary {
 }
 
 .search-results {
-  max-height: 170px;
+  max-height: 150px;
   overflow: auto;
   display: grid;
   gap: 6px;
+  min-width: 0;
 }
 
 .search-result {
+  min-width: 0;
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -426,6 +430,8 @@ label.button.primary {
   color: var(--muted);
   font-size: 11px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Crop modal --------------------------------------------------------------- */

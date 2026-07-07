@@ -635,7 +635,6 @@ function runSearch() {
   syncEditorToCard();
   searchMatches = collectSearchMatches(query);
   renderSearchResults();
-  if (searchMatches.length) goToSearchResult(0);
 }
 
 function collectSearchMatches(query) {
@@ -740,10 +739,15 @@ function goToSearchResult(index) {
     renderLore();
     focusSearchRange(els.entryContent, match.start, match.end);
   } else {
+    if (currentView === 'card') syncEditorToCard();
     selectedField = match.target.key;
     if (match.target.greetingIndex != null) selectedGreetingIndex = match.target.greetingIndex;
     renderFieldNav();
-    setView('card');
+    if (currentView !== 'card') {
+      setView('card');
+    } else {
+      renderSelectedField();
+    }
     focusSearchRange(els.fieldEditor, match.start, match.end);
   }
 
