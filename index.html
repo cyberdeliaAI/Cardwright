@@ -44,6 +44,20 @@
           </div>
         </details>
 
+        <section class="panel search-panel" aria-label="Search and replace">
+          <label for="searchInput">Find</label>
+          <input id="searchInput" type="search" placeholder="Search card and lorebook...">
+          <label for="replaceInput">Replace</label>
+          <input id="replaceInput" type="text" placeholder="Replacement text">
+          <div class="search-actions">
+            <button id="searchBtn" class="button" type="button">Find</button>
+            <button id="searchNextBtn" class="button" type="button" disabled>Next</button>
+            <button id="replaceHereBtn" class="button" type="button" disabled>Replace Here</button>
+          </div>
+          <p id="searchSummary" class="search-summary">No search yet.</p>
+          <div id="searchResults" class="search-results" aria-live="polite"></div>
+        </section>
+
         <nav id="fieldNav" class="field-nav" aria-label="Card fields"></nav>
       </aside>
 
@@ -179,6 +193,10 @@
                   <textarea id="entryContent" placeholder="What the AI should know when this entry triggers..."></textarea>
                 </label>
 
+                <label for="entryAiInstruction">AI instruction
+                  <textarea id="entryAiInstruction" class="entry-ai-instruction" placeholder="e.g. Make this entry shorter, add clearer trigger context, remove scene-like phrasing..."></textarea>
+                </label>
+
                 <div class="lore-form-row checks">
                   <label class="inline"><input id="entryEnabled" type="checkbox"> Enabled</label>
                   <label class="inline"><input id="entryConstant" type="checkbox"> Constant (always on)</label>
@@ -202,6 +220,7 @@
                   <button id="deleteEntryBtn" class="button danger" type="button">Delete entry</button>
                 </div>
 
+                <label for="loreLog">AI status</label>
                 <pre id="loreLog" class="log-output" aria-live="polite"></pre>
               </div>
             </div>

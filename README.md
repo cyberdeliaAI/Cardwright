@@ -1,6 +1,6 @@
 # Cardwright
 
-**Current version:** 1.0.0
+**Current version:** 1.1.0
 
 A small standalone character card editor (and lorebook authoring tool) focused on one workflow:
 

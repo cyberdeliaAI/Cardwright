@@ -127,6 +127,13 @@ const els = {
   avatarInput: document.getElementById('avatarInput'),
   setAvatarBtn: document.getElementById('setAvatarBtn'),
   avatarPreview: document.getElementById('avatarPreview'),
+  searchInput: document.getElementById('searchInput'),
+  replaceInput: document.getElementById('replaceInput'),
+  searchBtn: document.getElementById('searchBtn'),
+  searchNextBtn: document.getElementById('searchNextBtn'),
+  replaceHereBtn: document.getElementById('replaceHereBtn'),
+  searchSummary: document.getElementById('searchSummary'),
+  searchResults: document.getElementById('searchResults'),
   cardSummary: document.getElementById('cardSummary'),
   fieldNav: document.getElementById('fieldNav'),
   fieldKey: document.getElementById('fieldKey'),
@@ -191,6 +198,7 @@ const els = {
   entryCase: document.getElementById('entryCase'),
   entryPosition: document.getElementById('entryPosition'),
   entryOrder: document.getElementById('entryOrder'),
+  entryAiInstruction: document.getElementById('entryAiInstruction'),
   entryAiBtn: document.getElementById('entryAiBtn'),
   deleteEntryBtn: document.getElementById('deleteEntryBtn'),
   loreLog: document.getElementById('loreLog'),
@@ -216,6 +224,8 @@ let selectedEntryIndex = 0;
 let avatar = null; // { image: HTMLImageElement, dataUrl: string }
 let saveTimer = null;
 let aiStatusTimer = null;
+let searchMatches = [];
+let selectedSearchIndex = -1;
 
 const STORAGE_CARD = 'cardwright_card';
 const STORAGE_AVATAR = 'cardwright_avatar';
@@ -313,6 +323,21 @@ els.modelSelect.addEventListener('change', () => {
   setProviderStatus(`Selected model: ${els.modelSelect.value}.`, 'ok');
 });
 els.stopServerBtn.addEventListener('click', stopServer);
+els.searchBtn.addEventListener('click', runSearch);
+els.searchNextBtn.addEventListener('click', goToNextSearchResult);
+els.replaceHereBtn.addEventListener('click', replaceInCurrentTarget);
+els.searchInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    runSearch();
+  }
+});
+els.searchInput.addEventListener('input', resetSearchResults);
+els.searchResults.addEventListener('click', (event) => {
+  const button = event.target.closest('.search-result');
+  if (!button) return;
+  goToSearchResult(Number(button.dataset.index));
+});
 els.prevGreetingBtn.addEventListener('click', () => moveGreetingSelection(-1));
 els.nextGreetingBtn.addEventListener('click', () => moveGreetingSelection(1));
 els.addGreetingBtn.addEventListener('click', addAlternateGreeting);
@@ -446,6 +471,7 @@ async function loadFile(file) {
     renderLore();
     renderAiAudit();
     renderLoreAudit();
+    resetSearchResults();
     if (currentView === 'audit') renderAudit();
     updateSummary();
     scheduleSave();
@@ -590,6 +616,195 @@ function renderFieldNav() {
     });
     els.fieldNav.appendChild(button);
   }
+}
+
+function runSearch() {
+  const query = els.searchInput.value.trim();
+  searchMatches = [];
+  selectedSearchIndex = -1;
+
+  if (!card) {
+    renderSearchResults('Load a card before searching.');
+    return;
+  }
+  if (!query) {
+    renderSearchResults('Enter text to search.');
+    return;
+  }
+
+  syncEditorToCard();
+  searchMatches = collectSearchMatches(query);
+  renderSearchResults();
+  if (searchMatches.length) goToSearchResult(0);
+}
+
+function collectSearchMatches(query) {
+  const matches = [];
+  const needle = query.toLowerCase();
+  const pushMatches = (target, text) => {
+    const haystack = String(text || '');
+    const lower = haystack.toLowerCase();
+    let start = lower.indexOf(needle);
+    while (start !== -1) {
+      matches.push({
+        target,
+        start,
+        end: start + query.length,
+        snippet: makeSearchSnippet(haystack, start, query.length),
+      });
+      start = lower.indexOf(needle, start + Math.max(1, query.length));
+    }
+  };
+
+  for (const field of FIELD_DEFS) {
+    if (field.key === 'alternate_greetings') {
+      getAlternateGreetings(card).forEach((greeting, index) => {
+        pushMatches({
+          type: 'field',
+          key: field.key,
+          greetingIndex: index,
+          label: `Alternate Greeting ${index + 1}`,
+        }, greeting);
+      });
+      continue;
+    }
+    pushMatches({
+      type: 'field',
+      key: field.key,
+      label: field.label,
+    }, getField(card, field.key));
+  }
+
+  loreEntries().forEach((entry, index) => {
+    pushMatches({
+      type: 'lore',
+      index,
+      label: `Lorebook: ${entryName(entry) || '(untitled entry)'}`,
+    }, entry.content || '');
+  });
+
+  return matches;
+}
+
+function makeSearchSnippet(text, start, length) {
+  const radius = 42;
+  const from = Math.max(0, start - radius);
+  const to = Math.min(text.length, start + length + radius);
+  const prefix = from > 0 ? '...' : '';
+  const suffix = to < text.length ? '...' : '';
+  return `${prefix}${text.slice(from, to).replace(/\s+/g, ' ')}${suffix}`;
+}
+
+function renderSearchResults(message = '') {
+  els.searchResults.innerHTML = '';
+  els.searchNextBtn.disabled = searchMatches.length === 0;
+  els.replaceHereBtn.disabled = !card || !els.searchInput.value.trim();
+
+  if (message) {
+    els.searchSummary.textContent = message;
+    return;
+  }
+
+  if (!searchMatches.length) {
+    els.searchSummary.textContent = els.searchInput.value.trim() ? 'No matches.' : 'No search yet.';
+    return;
+  }
+
+  const shown = searchMatches.slice(0, 80);
+  els.searchSummary.textContent = `${searchMatches.length} match${searchMatches.length === 1 ? '' : 'es'}${searchMatches.length > shown.length ? `, showing first ${shown.length}` : ''}.`;
+
+  shown.forEach((match, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `search-result${index === selectedSearchIndex ? ' active' : ''}`;
+    button.dataset.index = String(index);
+    button.innerHTML = `<strong>${escapeHtml(match.target.label)}</strong><span>${escapeHtml(match.snippet)}</span>`;
+    els.searchResults.appendChild(button);
+  });
+}
+
+function goToNextSearchResult() {
+  if (!searchMatches.length) return;
+  const next = selectedSearchIndex < 0 ? 0 : (selectedSearchIndex + 1) % searchMatches.length;
+  goToSearchResult(next);
+}
+
+function goToSearchResult(index) {
+  const match = searchMatches[index];
+  if (!match) return;
+  selectedSearchIndex = index;
+
+  if (match.target.type === 'lore') {
+    selectedEntryIndex = match.target.index;
+    setView('lore');
+    renderLore();
+    focusSearchRange(els.entryContent, match.start, match.end);
+  } else {
+    selectedField = match.target.key;
+    if (match.target.greetingIndex != null) selectedGreetingIndex = match.target.greetingIndex;
+    renderFieldNav();
+    setView('card');
+    focusSearchRange(els.fieldEditor, match.start, match.end);
+  }
+
+  renderSearchResults();
+}
+
+function focusSearchRange(textarea, start, end) {
+  textarea.focus();
+  textarea.setSelectionRange(start, end);
+}
+
+function replaceInCurrentTarget() {
+  if (!card) return;
+  const query = els.searchInput.value;
+  if (!query) {
+    renderSearchResults('Enter text to replace.');
+    return;
+  }
+  if (currentView !== 'card' && currentView !== 'lore') {
+    renderSearchResults('Open a card field or lorebook entry before replacing.');
+    return;
+  }
+  const replacement = els.replaceInput.value;
+  const pattern = new RegExp(escapeRegExp(query), 'gi');
+
+  if (currentView === 'lore' && selectedEntry()) {
+    const before = els.entryContent.value || '';
+    const after = before.replace(pattern, replacement);
+    if (before === after) {
+      loreLog('No matches in this lorebook entry.');
+      return;
+    }
+    els.entryContent.value = after;
+    updateEntry((entry) => { entry.content = after; }, { relist: true });
+    updateEntryStats();
+    loreLog('Replaced matches in this lorebook entry.');
+  } else {
+    const before = els.fieldEditor.value || '';
+    const after = before.replace(pattern, replacement);
+    if (before === after) {
+      log('No matches in the selected card field.');
+      return;
+    }
+    els.fieldEditor.value = after;
+    setEditorValue(selectedField, after);
+    renderFieldNav();
+    renderSelectedField();
+    scheduleSave();
+    log('Replaced matches in the selected card field.');
+  }
+
+  runSearch();
+}
+
+function resetSearchResults() {
+  searchMatches = [];
+  selectedSearchIndex = -1;
+  els.searchResults.innerHTML = '';
+  els.searchSummary.textContent = 'No search yet.';
+  els.searchNextBtn.disabled = true;
+  els.replaceHereBtn.disabled = !card || !els.searchInput.value.trim();
 }
 
 function renderSelectedField() {
@@ -996,6 +1211,7 @@ async function improveEntryWithAi() {
   const entry = selectedEntry();
   if (!entry) return;
   const current = entry.content || '';
+  const customInstruction = els.entryAiInstruction.value.trim();
   if (!current.trim()) {
     loreLog('Write some content first, then let the AI improve it.');
     return;
@@ -1010,6 +1226,7 @@ async function improveEntryWithAi() {
         content: [
           'You are editing a single character-card lorebook entry.',
           'Keep it factual, compact, and reusable. Write durable world facts, not a scene.',
+          'Follow the user instruction when provided, but do not break lorebook usefulness or trigger clarity.',
           'Preserve placeholders like {{char}} and {{user}}. Return only the revised entry content, no markdown fences.',
         ].join('\n'),
       },
@@ -1022,6 +1239,9 @@ async function improveEntryWithAi() {
           'Current content:',
           current,
           '',
+          'User instruction:',
+          customInstruction || '(general improvement: improve clarity, trigger usefulness, and compactness)',
+          '',
           'Card context:',
           summarizeCardForPrompt(3000),
         ].join('\n'),
@@ -1033,6 +1253,7 @@ async function improveEntryWithAi() {
     renderLoreList();
     renderLoreSummary();
     scheduleSave();
+    els.entryAiInstruction.value = '';
     loreLog('Entry content updated by AI. Edit further or switch entries.');
   } catch (error) {
     loreLog(`AI edit failed: ${error.message}`);
@@ -1119,6 +1340,7 @@ function renderLoreEditor() {
   els.entryCase.checked = !!entry.case_sensitive;
   els.entryPosition.value = entryPosition(entry);
   els.entryOrder.value = entryOrder(entry);
+  els.entryAiInstruction.value = '';
   updateEntryStats();
 }
 
@@ -2103,6 +2325,7 @@ function newCard() {
   renderLore();
   renderAiAudit();
   renderLoreAudit();
+  resetSearchResults();
   setView('concept');
   updateSummary();
   persistCard();
@@ -2275,6 +2498,10 @@ function resetCopyLoreAuditButton() {
   els.copyLoreAuditBtn.textContent = '⧉';
   els.copyLoreAuditBtn.title = 'Copy lorebook audit output';
   els.copyLoreAuditBtn.setAttribute('aria-label', 'Copy lorebook audit output');
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function escapeHtml(value) {
