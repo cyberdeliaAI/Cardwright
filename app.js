@@ -133,6 +133,7 @@ const els = {
   searchNextBtn: document.getElementById('searchNextBtn'),
   replaceHereBtn: document.getElementById('replaceHereBtn'),
   searchSummary: document.getElementById('searchSummary'),
+  searchResultsWrap: document.getElementById('searchResultsWrap'),
   searchResults: document.getElementById('searchResults'),
   cardSummary: document.getElementById('cardSummary'),
   fieldNav: document.getElementById('fieldNav'),
@@ -675,10 +676,11 @@ function collectSearchMatches(query) {
   }
 
   loreEntries().forEach((entry, index) => {
+    const title = entryName(entry) || '(untitled)';
     pushMatches({
       type: 'lore',
       index,
-      label: `Lorebook: ${entryName(entry) || '(untitled entry)'}`,
+      label: `Lore ${index + 1}: ${title}`,
     }, entry.content || '');
   });
 
@@ -701,16 +703,18 @@ function renderSearchResults(message = '') {
 
   if (message) {
     els.searchSummary.textContent = message;
+    els.searchResultsWrap.open = false;
     return;
   }
 
   if (!searchMatches.length) {
     els.searchSummary.textContent = els.searchInput.value.trim() ? 'No matches.' : 'No search yet.';
+    els.searchResultsWrap.open = false;
     return;
   }
 
-  const shown = searchMatches.slice(0, 80);
-  els.searchSummary.textContent = `${searchMatches.length} match${searchMatches.length === 1 ? '' : 'es'}${searchMatches.length > shown.length ? `, showing first ${shown.length}` : ''}.`;
+  const shown = searchMatches.slice(0, 30);
+  els.searchSummary.textContent = `${searchMatches.length} match${searchMatches.length === 1 ? '' : 'es'}. Use Next or open Results.`;
 
   shown.forEach((match, index) => {
     const button = document.createElement('button');
@@ -732,6 +736,7 @@ function goToSearchResult(index) {
   const match = searchMatches[index];
   if (!match) return;
   selectedSearchIndex = index;
+  commitCurrentEditableView();
 
   if (match.target.type === 'lore') {
     selectedEntryIndex = match.target.index;
@@ -739,7 +744,6 @@ function goToSearchResult(index) {
     renderLore();
     focusSearchRange(els.entryContent, match.start, match.end);
   } else {
-    if (currentView === 'card') syncEditorToCard();
     selectedField = match.target.key;
     if (match.target.greetingIndex != null) selectedGreetingIndex = match.target.greetingIndex;
     renderFieldNav();
@@ -752,6 +756,16 @@ function goToSearchResult(index) {
   }
 
   renderSearchResults();
+}
+
+function commitCurrentEditableView() {
+  if (currentView === 'card') {
+    syncEditorToCard();
+    return;
+  }
+  if (currentView === 'lore' && selectedEntry()) {
+    updateEntry((entry) => { entry.content = els.entryContent.value; }, { relist: true });
+  }
 }
 
 function focusSearchRange(textarea, start, end) {
@@ -806,6 +820,7 @@ function resetSearchResults() {
   searchMatches = [];
   selectedSearchIndex = -1;
   els.searchResults.innerHTML = '';
+  els.searchResultsWrap.open = false;
   els.searchSummary.textContent = 'No search yet.';
   els.searchNextBtn.disabled = true;
   els.replaceHereBtn.disabled = !card || !els.searchInput.value.trim();
@@ -1051,11 +1066,16 @@ function updateSummary() {
     els.cardSummary.textContent = 'Create or load a character card to begin.';
     return;
   }
-  const name = getField(card, 'name') || 'Untitled character';
+  const name = compactHeaderName(getField(card, 'name'));
   const filled = FIELD_DEFS.filter((field) => getField(card, field.key).trim()).length;
   const loreCount = loreEntries().length;
   const loreNote = loreCount ? ` · ${loreCount} lore ${loreCount === 1 ? 'entry' : 'entries'}` : '';
   els.cardSummary.textContent = `${name} from ${sourceName || 'memory'} - ${filled}/${FIELD_DEFS.length} fields filled · ~${cardTokenTotal()}t${loreNote}`;
+}
+
+function compactHeaderName(value) {
+  const firstLine = String(value || '').split(/\r?\n/).find((line) => line.trim())?.trim() || 'Untitled character';
+  return firstLine.length > 64 ? `${firstLine.slice(0, 61)}...` : firstLine;
 }
 
 function setAiEnabled(enabled) {

@@ -40,6 +40,7 @@ textarea {
 }
 
 .topbar {
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -78,6 +79,7 @@ h1 {
   gap: 10px;
   flex-wrap: nowrap;
   min-width: 0;
+  max-width: 100%;
 }
 
 /* Let the left header column shrink so the summary can truncate instead of
@@ -88,6 +90,7 @@ h1 {
 
 #cardSummary {
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -272,20 +275,26 @@ label.button.primary {
 .workspace {
   min-height: 0;
   display: grid;
-  grid-template-columns: 290px 1fr;
+  grid-template-columns: minmax(0, 290px) minmax(0, 1fr);
   gap: 14px;
   padding: 14px 22px 22px;
+  overflow: hidden;
 }
 
 .sidebar,
 .editor {
   min-height: 0;
+  min-width: 0;
 }
 
 .sidebar {
+  inline-size: 290px;
+  max-inline-size: 290px;
+  min-width: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 12px;
+  overflow: hidden;
 }
 
 .avatar-panel {
@@ -355,6 +364,7 @@ label.button.primary {
 
 .search-panel {
   min-width: 0;
+  max-width: 100%;
   padding: 12px;
   display: grid;
   gap: 8px;
@@ -366,13 +376,18 @@ label.button.primary {
 }
 
 .search-panel input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 34px;
   padding: 8px 10px;
 }
 
 .search-actions {
+  min-width: 0;
+  max-width: 100%;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
 }
 
@@ -391,16 +406,34 @@ label.button.primary {
   line-height: 1.35;
 }
 
+.search-results-wrap {
+  min-width: 0;
+  max-width: 100%;
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+}
+
+.search-results-wrap summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  list-style-position: inside;
+}
+
 .search-results {
-  max-height: 150px;
+  width: 100%;
+  max-height: 118px;
   overflow: auto;
   display: grid;
   gap: 6px;
   min-width: 0;
+  max-width: 100%;
 }
 
 .search-result {
   min-width: 0;
+  max-width: 100%;
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -409,6 +442,8 @@ label.button.primary {
   color: var(--text);
   text-align: left;
   cursor: pointer;
+  white-space: normal;
+  overflow: hidden;
 }
 
 .search-result.active {
@@ -418,7 +453,10 @@ label.button.primary {
 
 .search-result strong,
 .search-result span {
+  min-width: 0;
+  max-width: 100%;
   display: block;
+  overflow: hidden;
 }
 
 .search-result strong {
@@ -1226,6 +1264,8 @@ select:focus {
   }
 
   .sidebar {
+    inline-size: auto;
+    max-inline-size: none;
     grid-template-rows: auto auto auto;
   }
 
