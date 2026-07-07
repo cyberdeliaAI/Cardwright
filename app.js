@@ -582,7 +582,11 @@ function renderFieldNav() {
       selectedField = field.key;
       if (selectedField === 'alternate_greetings') clampGreetingIndex();
       renderFieldNav();
-      renderSelectedField();
+      if (currentView !== 'card') {
+        setView('card');
+      } else {
+        renderSelectedField();
+      }
     });
     els.fieldNav.appendChild(button);
   }
