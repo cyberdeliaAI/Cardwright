@@ -681,6 +681,13 @@ label.inline input {
 }
 
 /* Audit view --------------------------------------------------------------- */
+.audit-view {
+  display: grid;
+  grid-template-rows: auto minmax(260px, 1fr) minmax(260px, 1fr);
+  gap: 14px;
+  min-height: 0;
+}
+
 .audit-panel {
   padding: 16px;
   min-height: 0;
@@ -690,10 +697,20 @@ label.inline input {
   gap: 12px;
 }
 
+.ai-audit-panel {
+  min-height: 260px;
+}
+
 .audit-report {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.5;
+}
+
+.audit-ai-output {
+  flex: 1;
+  min-height: 220px;
+  white-space: pre-wrap;
 }
 
 .audit-scorebar {

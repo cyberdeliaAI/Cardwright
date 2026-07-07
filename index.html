@@ -97,7 +97,6 @@
                 <p class="eyebrow" id="aiFieldScope">AI edit</p>
                 <h2 id="aiFieldTitle">Revise selected field</h2>
               </div>
-              <button id="auditBtn" class="button" disabled>Audit Full Card</button>
             </div>
             <p id="aiFieldGuidance" class="field-guidance">Select a field to load field-specific AI instructions.</p>
 
@@ -209,7 +208,7 @@
           </div>
         </div>
 
-        <div id="auditView" class="view hidden">
+        <div id="auditView" class="view audit-view hidden">
           <div class="panel audit-panel">
             <div class="ai-header">
               <div>
@@ -220,6 +219,38 @@
             </div>
             <p class="field-guidance">Runs entirely offline — no AI call. Checks required fields, token budgets, placeholder text, {{user}} impersonation, and lorebook health.</p>
             <div id="auditReport" class="audit-report">Load a card and click “Run Audit” to analyze it.</div>
+          </div>
+
+          <div class="panel audit-panel ai-audit-panel">
+            <div class="ai-header">
+              <div>
+                <p class="eyebrow">AI analysis</p>
+                <h2>Full card audit</h2>
+              </div>
+              <button id="runAiAuditBtn" class="button primary" type="button" disabled>Audit Full Card</button>
+            </div>
+            <p class="field-guidance">Uses your selected AI provider to review roleplay quality, consistency, field balance, and highest-impact fixes. The latest result is kept in this browser session.</p>
+            <div class="output-header">
+              <label id="aiAuditLabel" for="aiAuditOutput">AI Audit Output</label>
+              <button id="copyAiAuditBtn" class="button icon-button copy-output" type="button" aria-label="Copy AI audit output" title="Copy AI audit output" disabled>⧉</button>
+            </div>
+            <pre id="aiAuditOutput" class="log-output audit-ai-output" aria-live="polite">Run “Audit Full Card” to create an AI review here.</pre>
+          </div>
+
+          <div class="panel audit-panel ai-audit-panel">
+            <div class="ai-header">
+              <div>
+                <p class="eyebrow">AI analysis</p>
+                <h2>Lorebook audit</h2>
+              </div>
+              <button id="runLoreAuditBtn" class="button primary" type="button" disabled>Audit Lorebook</button>
+            </div>
+            <p class="field-guidance">Reviews lorebook structure, triggers, constant entries, token load, duplication, and how well entries support the card. The latest result is kept in this browser session.</p>
+            <div class="output-header">
+              <label id="loreAuditLabel" for="loreAuditOutput">Lorebook Audit Output</label>
+              <button id="copyLoreAuditBtn" class="button icon-button copy-output" type="button" aria-label="Copy lorebook audit output" title="Copy lorebook audit output" disabled>⧉</button>
+            </div>
+            <pre id="loreAuditOutput" class="log-output audit-ai-output" aria-live="polite">Run “Audit Lorebook” to create a lorebook review here.</pre>
           </div>
         </div>
       </section>

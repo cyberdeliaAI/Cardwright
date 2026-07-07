@@ -151,7 +151,6 @@ const els = {
   providerNote: document.getElementById('providerNote'),
   saveSettingsBtn: document.getElementById('saveSettingsBtn'),
   stopServerBtn: document.getElementById('stopServerBtn'),
-  auditBtn: document.getElementById('auditBtn'),
   aiFieldScope: document.getElementById('aiFieldScope'),
   aiFieldTitle: document.getElementById('aiFieldTitle'),
   aiFieldGuidance: document.getElementById('aiFieldGuidance'),
@@ -197,6 +196,14 @@ const els = {
   loreLog: document.getElementById('loreLog'),
   runLocalAuditBtn: document.getElementById('runLocalAuditBtn'),
   auditReport: document.getElementById('auditReport'),
+  runAiAuditBtn: document.getElementById('runAiAuditBtn'),
+  aiAuditLabel: document.getElementById('aiAuditLabel'),
+  aiAuditOutput: document.getElementById('aiAuditOutput'),
+  copyAiAuditBtn: document.getElementById('copyAiAuditBtn'),
+  runLoreAuditBtn: document.getElementById('runLoreAuditBtn'),
+  loreAuditLabel: document.getElementById('loreAuditLabel'),
+  loreAuditOutput: document.getElementById('loreAuditOutput'),
+  copyLoreAuditBtn: document.getElementById('copyLoreAuditBtn'),
 };
 
 let card = null;
@@ -213,6 +220,8 @@ let aiStatusTimer = null;
 const STORAGE_CARD = 'cardwright_card';
 const STORAGE_AVATAR = 'cardwright_avatar';
 const STORAGE_SETTINGS = 'cardwright_settings';
+const STORAGE_AI_AUDIT = 'cardwright_ai_audit';
+const STORAGE_LORE_AUDIT = 'cardwright_lore_audit';
 const LEGACY_STORAGE_CARD = 'ccs_standalone_card';
 const LEGACY_STORAGE_AVATAR = 'ccs_standalone_avatar';
 const LEGACY_STORAGE_SETTINGS = 'ccs_standalone_settings';
@@ -224,6 +233,8 @@ const restoredView = restoreCard();
 renderFieldNav();
 renderSelectedField();
 renderLore();
+renderAiAudit();
+renderLoreAudit();
 if (restoredView) {
   setView(restoredView);
   updateSummary();
@@ -320,8 +331,11 @@ els.customAiBtn.addEventListener('click', () => {
   runFieldAction('custom', instruction);
 });
 
-els.auditBtn.addEventListener('click', runAudit);
 els.copyOutputBtn.addEventListener('click', copyAiOutput);
+els.runAiAuditBtn.addEventListener('click', runAiAudit);
+els.copyAiAuditBtn.addEventListener('click', copyAiAuditOutput);
+els.runLoreAuditBtn.addEventListener('click', runLoreAudit);
+els.copyLoreAuditBtn.addEventListener('click', copyLoreAuditOutput);
 
 els.viewTabs.forEach((tab) => {
   tab.addEventListener('click', () => setView(tab.dataset.view));
@@ -430,6 +444,8 @@ async function loadFile(file) {
     renderFieldNav();
     renderSelectedField();
     renderLore();
+    renderAiAudit();
+    renderLoreAudit();
     if (currentView === 'audit') renderAudit();
     updateSummary();
     scheduleSave();
@@ -683,6 +699,113 @@ function renderAiPanel(def) {
   els.outputLabel.textContent = 'AI Output';
 }
 
+function currentCardAuditKey() {
+  if (!card) return '';
+  const name = getField(card, 'name') || 'untitled';
+  return `${sourceName || 'memory'}::${name}`;
+}
+
+function loadStoredAiAudit() {
+  try {
+    const raw = localStorage.getItem(STORAGE_AI_AUDIT);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    localStorage.removeItem(STORAGE_AI_AUDIT);
+    return null;
+  }
+}
+
+function saveAiAudit(content) {
+  const record = {
+    cardKey: currentCardAuditKey(),
+    createdAt: new Date().toISOString(),
+    content,
+  };
+  try {
+    localStorage.setItem(STORAGE_AI_AUDIT, JSON.stringify(record));
+  } catch {
+    // Keep showing the result even if browser storage is full.
+  }
+  renderAiAudit(record);
+}
+
+function loadStoredLoreAudit() {
+  try {
+    const raw = localStorage.getItem(STORAGE_LORE_AUDIT);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    localStorage.removeItem(STORAGE_LORE_AUDIT);
+    return null;
+  }
+}
+
+function saveLoreAudit(content) {
+  const record = {
+    cardKey: currentCardAuditKey(),
+    createdAt: new Date().toISOString(),
+    content,
+  };
+  try {
+    localStorage.setItem(STORAGE_LORE_AUDIT, JSON.stringify(record));
+  } catch {
+    // Keep showing the result even if browser storage is full.
+  }
+  renderLoreAudit(record);
+}
+
+function clearStoredAiAudit() {
+  try {
+    localStorage.removeItem(STORAGE_AI_AUDIT);
+    localStorage.removeItem(STORAGE_LORE_AUDIT);
+  } catch {
+    // Storage unavailable — nothing to clear.
+  }
+  renderAiAudit(null);
+  renderLoreAudit(null);
+}
+
+function renderAiAudit(record = loadStoredAiAudit()) {
+  const matchesCard = card && record?.cardKey === currentCardAuditKey() && record?.content;
+  if (!matchesCard) {
+    els.aiAuditLabel.textContent = 'AI Audit Output';
+    els.aiAuditOutput.textContent = 'Run “Audit Full Card” to create an AI review here.';
+    els.copyAiAuditBtn.disabled = true;
+    resetCopyAiAuditButton();
+    return;
+  }
+
+  const date = new Date(record.createdAt);
+  const stamp = Number.isNaN(date.getTime())
+    ? 'saved this session'
+    : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  els.aiAuditLabel.textContent = `AI Audit Output - ${stamp}`;
+  els.aiAuditOutput.textContent = record.content;
+  els.copyAiAuditBtn.disabled = false;
+  resetCopyAiAuditButton();
+}
+
+function renderLoreAudit(record = loadStoredLoreAudit()) {
+  const matchesCard = card && record?.cardKey === currentCardAuditKey() && record?.content;
+  if (!matchesCard) {
+    els.loreAuditLabel.textContent = 'Lorebook Audit Output';
+    els.loreAuditOutput.textContent = 'Run “Audit Lorebook” to create a lorebook review here.';
+    els.copyLoreAuditBtn.disabled = true;
+    resetCopyLoreAuditButton();
+    return;
+  }
+
+  const date = new Date(record.createdAt);
+  const stamp = Number.isNaN(date.getTime())
+    ? 'saved this session'
+    : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  els.loreAuditLabel.textContent = `Lorebook Audit Output - ${stamp}`;
+  els.loreAuditOutput.textContent = record.content;
+  els.copyLoreAuditBtn.disabled = false;
+  resetCopyLoreAuditButton();
+}
+
 function syncEditorToCard() {
   if (!card || els.fieldEditor.disabled) return;
   setEditorValue(selectedField, els.fieldEditor.value);
@@ -715,8 +838,9 @@ function updateSummary() {
 function setAiEnabled(enabled) {
   els.aiActions.forEach((button) => { button.disabled = !enabled; });
   els.customAiBtn.disabled = !enabled;
-  els.auditBtn.disabled = !enabled;
   els.runLocalAuditBtn.disabled = !enabled;
+  els.runAiAuditBtn.disabled = !enabled;
+  els.runLoreAuditBtn.disabled = !enabled;
 }
 
 function openSettings() {
@@ -746,7 +870,11 @@ function setView(view) {
   if (view === 'card') renderSelectedField();
   if (view === 'concept') renderConcept();
   if (view === 'lore') renderLore();
-  if (view === 'audit') renderAudit();
+  if (view === 'audit') {
+    renderAudit();
+    renderAiAudit();
+    renderLoreAudit();
+  }
 }
 
 // ─── Lorebook model (embedded character_book, V2 spec) ──────────────────────
@@ -1182,11 +1310,13 @@ async function runFieldAction(action, customInstruction = '') {
   }
 }
 
-async function runAudit() {
+async function runAiAudit() {
   if (!card) return;
   syncEditorToCard();
-  els.outputLabel.textContent = 'Full Card Audit';
-  log('Auditing the full card...');
+  els.aiAuditLabel.textContent = 'AI Audit Output';
+  els.aiAuditOutput.textContent = 'Auditing the full card...';
+  els.copyAiAuditBtn.disabled = true;
+  setAiStatus('running', 'Auditing card...');
   setBusy(true);
 
   try {
@@ -1205,9 +1335,62 @@ async function runAudit() {
         ].join('\n'),
       },
     ]);
-    log(`Full Card Audit\n\n${content}`);
+    saveAiAudit(content);
+    setAiStatus('done', 'Card audit complete', { temporary: true });
   } catch (error) {
-    log(`Audit failed: ${error.message}`);
+    els.aiAuditOutput.textContent = `Audit failed: ${error.message}`;
+    els.copyAiAuditBtn.disabled = true;
+    setAiStatus('error', 'Card audit failed');
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function runLoreAudit() {
+  if (!card) return;
+  syncEditorToCard();
+
+  const entries = loreEntries();
+  if (!entries.length) {
+    els.loreAuditLabel.textContent = 'Lorebook Audit Output';
+    els.loreAuditOutput.textContent = 'No lorebook entries found. Add entries in the Lorebook tab, then run this audit.';
+    els.copyLoreAuditBtn.disabled = true;
+    resetCopyLoreAuditButton();
+    return;
+  }
+
+  els.loreAuditLabel.textContent = 'Lorebook Audit Output';
+  els.loreAuditOutput.textContent = 'Auditing the lorebook...';
+  els.copyLoreAuditBtn.disabled = true;
+  setAiStatus('running', 'Auditing lorebook...');
+  setBusy(true);
+
+  try {
+    const content = await callAi([
+      { role: 'system', content: buildSystemPrompt() },
+      {
+        role: 'user',
+        content: [
+          'Audit this character-card lorebook for roleplay utility and technical health.',
+          'This is a lorebook-focused audit. Do not rewrite the whole character card.',
+          'Use sections: Lorebook strengths, Trigger/keyword issues, Token and constant-entry risks, Duplication or contradiction with card, Entry-by-entry notes, Highest-impact fixes.',
+          'Check whether entries are durable world/context facts rather than one-time scenes.',
+          'Flag vague entries, missing keywords, keyword collisions, over-broad triggers, excessive constant lore, disabled entries, and content that duplicates card fields too closely.',
+          'Any text marked "[…entry shortened for this prompt…]" was trimmed only to fit this request — the real entry is complete, so never report it as cut off or truncated.',
+          '',
+          '## Compact card context',
+          summarizeCardForPrompt(1200),
+          '',
+          summarizeLorebookForPrompt(1800),
+        ].join('\n'),
+      },
+    ]);
+    saveLoreAudit(content);
+    setAiStatus('done', 'Lorebook audit complete', { temporary: true });
+  } catch (error) {
+    els.loreAuditOutput.textContent = `Lorebook audit failed: ${error.message}`;
+    els.copyLoreAuditBtn.disabled = true;
+    setAiStatus('error', 'Lorebook audit failed');
   } finally {
     setBusy(false);
   }
@@ -1271,6 +1454,50 @@ function summarizeCardForPrompt(perField = 3000) {
   const concept = getConcept().trim();
   const head = concept ? `## Concept / Brief\n${concept}\n\n` : '';
   return head + lines.join('\n\n');
+}
+
+function summarizeLorebookForPrompt(perEntry = 1800) {
+  const book = getCharacterBook(card);
+  const entries = loreEntries();
+  const enabled = entries.filter(entryEnabled).length;
+  const constants = entries.filter((entry) => entryEnabled(entry) && entry.constant).length;
+  const tokenTotal = entries.reduce((sum, entry) => sum + estimateTokens(entry.content || ''), 0);
+  const constantTokens = entries
+    .filter((entry) => entryEnabled(entry) && entry.constant)
+    .reduce((sum, entry) => sum + estimateTokens(entry.content || ''), 0);
+
+  const head = [
+    '## Lorebook',
+    `Name: ${book?.name || '(unnamed lorebook)'}`,
+    `Entries: ${entries.length}`,
+    `Enabled entries: ${enabled}`,
+    `Constant entries: ${constants}`,
+    `Total lore tokens: ~${tokenTotal}t`,
+    `Constant lore tokens: ~${constantTokens}t`,
+  ];
+
+  if (!entries.length) return `${head.join('\n')}\n\n(no lorebook entries)`;
+
+  const body = entries.map((entry, index) => {
+    let content = String(entry.content || '').trim();
+    if (content.length > perEntry) {
+      content = `${content.slice(0, perEntry)}\n[…entry shortened for this prompt; the real entry is longer and complete…]`;
+    }
+    return [
+      `### Entry ${index + 1}: ${entryName(entry) || '(untitled entry)'}`,
+      `Enabled: ${entryEnabled(entry) ? 'yes' : 'no'}`,
+      `Constant: ${entry.constant ? 'yes' : 'no'}`,
+      `Keys: ${entryKeys(entry).join(', ') || '(none)'}`,
+      `Secondary keys: ${entrySecondary(entry).join(', ') || '(none)'}`,
+      `Position: ${entryPosition(entry)}`,
+      `Insertion order: ${entryOrder(entry)}`,
+      `Tokens: ~${estimateTokens(entry.content || '')}t`,
+      '',
+      content || '(empty)',
+    ].join('\n');
+  });
+
+  return `${head.join('\n')}\n\n${body.join('\n\n')}`;
 }
 
 async function callAi(messages) {
@@ -1859,6 +2086,7 @@ function newCard() {
   selectedGreetingIndex = 0;
   selectedEntryIndex = 0;
   pendingDraft = null;
+  clearStoredAiAudit();
   els.draftPanel.classList.add('hidden');
   els.conceptResults.innerHTML = 'Write a concept above and click “Generate card from concept” to draft the fields.';
   clearAvatar();
@@ -1869,6 +2097,8 @@ function newCard() {
   renderFieldNav();
   renderSelectedField();
   renderLore();
+  renderAiAudit();
+  renderLoreAudit();
   setView('concept');
   updateSummary();
   persistCard();
@@ -1951,7 +2181,9 @@ function restoreCard() {
 function setBusy(isBusy) {
   els.aiActions.forEach((button) => { button.disabled = isBusy || !card; });
   els.customAiBtn.disabled = isBusy || !card;
-  els.auditBtn.disabled = isBusy || !card;
+  els.runLocalAuditBtn.disabled = isBusy || !card;
+  els.runAiAuditBtn.disabled = isBusy || !card;
+  els.runLoreAuditBtn.disabled = isBusy || !card;
 }
 
 function setAiStatus(state, text, { temporary = false } = {}) {
@@ -1987,10 +2219,58 @@ async function copyAiOutput() {
   }
 }
 
+async function copyAiAuditOutput() {
+  const text = els.aiAuditOutput.textContent.trim();
+  if (!text || text.startsWith('Run “Audit Full Card”')) return;
+
+  try {
+    await navigator.clipboard.writeText(text);
+    els.copyAiAuditBtn.textContent = '✓';
+    els.copyAiAuditBtn.title = 'Copied';
+    els.copyAiAuditBtn.setAttribute('aria-label', 'AI audit output copied');
+    setTimeout(resetCopyAiAuditButton, 1200);
+  } catch {
+    els.copyAiAuditBtn.textContent = '!';
+    els.copyAiAuditBtn.title = 'Could not copy';
+    els.copyAiAuditBtn.setAttribute('aria-label', 'Could not copy AI audit output');
+    setTimeout(resetCopyAiAuditButton, 1600);
+  }
+}
+
+async function copyLoreAuditOutput() {
+  const text = els.loreAuditOutput.textContent.trim();
+  if (!text || text.startsWith('Run “Audit Lorebook”')) return;
+
+  try {
+    await navigator.clipboard.writeText(text);
+    els.copyLoreAuditBtn.textContent = '✓';
+    els.copyLoreAuditBtn.title = 'Copied';
+    els.copyLoreAuditBtn.setAttribute('aria-label', 'Lorebook audit output copied');
+    setTimeout(resetCopyLoreAuditButton, 1200);
+  } catch {
+    els.copyLoreAuditBtn.textContent = '!';
+    els.copyLoreAuditBtn.title = 'Could not copy';
+    els.copyLoreAuditBtn.setAttribute('aria-label', 'Could not copy lorebook audit output');
+    setTimeout(resetCopyLoreAuditButton, 1600);
+  }
+}
+
 function resetCopyOutputButton() {
   els.copyOutputBtn.textContent = '⧉';
   els.copyOutputBtn.title = 'Copy AI output';
   els.copyOutputBtn.setAttribute('aria-label', 'Copy AI output');
+}
+
+function resetCopyAiAuditButton() {
+  els.copyAiAuditBtn.textContent = '⧉';
+  els.copyAiAuditBtn.title = 'Copy AI audit output';
+  els.copyAiAuditBtn.setAttribute('aria-label', 'Copy AI audit output');
+}
+
+function resetCopyLoreAuditButton() {
+  els.copyLoreAuditBtn.textContent = '⧉';
+  els.copyLoreAuditBtn.title = 'Copy lorebook audit output';
+  els.copyLoreAuditBtn.setAttribute('aria-label', 'Copy lorebook audit output');
 }
 
 function escapeHtml(value) {
