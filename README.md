@@ -6,14 +6,19 @@ A small standalone character card editor (and lorebook authoring tool) focused o
 
 ![Cardwright screenshot](examples/screenshot01.png)
 
+Additional documentation:
+
+- [User Guide](USER_GUIDE.md)
+- [Civitai Article Draft](CIVITAI_ARTICLE.md)
+
 1. Start a blank card with **New Card** (lands on the **Concept** tab), or load an existing one. Your work is auto-saved to the browser and restored on the next visit.
-2. In the **Concept** tab, describe your character idea and click **Generate card from concept** — the AI drafts every field for you to review and apply. The concept is saved and fed into all later AI edits.
+2. In the **Concept** tab, describe your character idea and click **Generate card from concept** - the AI drafts every field for you to review and apply. The concept is saved and fed into all later AI edits.
 3. Edit the card fields directly. (Or skip the concept and load an existing card from `.json` or a metadata-bearing `.png`.)
 4. Edit the embedded lorebook (`character_book`): add/remove entries, keywords, secondary keys, position, order, and constant/triggered settings.
 5. Run a local, offline **Audit** (no AI call) that checks required fields, token budgets, placeholder text, `{{user}}` impersonation, and lorebook health, scoring the card out of 100. Field-level issues can be sent to AI as reviewable fix drafts.
 6. Ask LM Studio, oMLX, Ollama, OpenAI, or another OpenAI-compatible model to revise one selected field, improve a lorebook entry, or audit the card.
 7. Set an avatar image and crop it to the 2:3 portrait ratio used by character cards.
-8. Export the edited card — lorebook included — as JSON, **or as a PNG** with the card embedded in a `chara` tEXt chunk (re-imports here and in SillyTavern).
+8. Export the edited card - lorebook included - as JSON, **or as a PNG** with the card embedded in a `chara` tEXt chunk (re-imports here and in SillyTavern).
 
 ### Avatar & PNG export
 
@@ -22,10 +27,10 @@ A small standalone character card editor (and lorebook authoring tool) focused o
 
 The editor is split into four tabs:
 
-- **Concept** — your idea/brief and one-click card generation.
-- **Card** — the character fields, with live token estimates per field.
-- **Lorebook** — the embedded World Info entries.
-- **Audit** — the offline quality report; each field-level issue links straight to the field it concerns and can generate an AI fix draft.
+- **Concept** - your idea/brief and one-click card generation.
+- **Card** - the character fields, with live token estimates per field.
+- **Lorebook** - the embedded World Info entries.
+- **Audit** - the offline quality report; each field-level issue links straight to the field it concerns and can generate an AI fix draft.
 
 Token counts are estimates (~4 characters per token) since no model tokenizer runs offline.
 
@@ -116,8 +121,9 @@ Any chat-completions-compatible provider should work if its base URL follows the
 
 ## Audit and shutdown
 
-`Audit Full Card` audits the whole card, not only the selected field. The result
-appears in the `AI Output` panel.
+The Audit tab includes a local offline audit, a full-card AI audit, and a
+separate lorebook AI audit. AI audit results are kept in the browser session for
+the current card.
 
 To stop the server, use the `Stop Server` button in Settings. You can also
 press `Ctrl+C` in the terminal where `node server.mjs` is running.
