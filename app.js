@@ -1277,7 +1277,7 @@ async function callAi(messages) {
   try {
     setAiStatus('connecting', 'Connecting to AI...');
     const settings = await getResolvedSettings();
-    setAiStatus('running', `Generating with ${settings.model || 'AI'}...`);
+    setAiStatus('running', 'Generating…');
     const response = await fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

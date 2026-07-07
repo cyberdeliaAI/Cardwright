@@ -76,7 +76,21 @@ h1 {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+/* Let the left header column shrink so the summary can truncate instead of
+   pushing the status pill onto a second line under the logo. */
+.topbar > div:first-child {
+  min-width: 0;
+}
+
+#cardSummary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ai-status {
@@ -84,6 +98,7 @@ h1 {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  flex-shrink: 0;
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 3px 9px;
