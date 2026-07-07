@@ -87,13 +87,20 @@ function buildProviderHeaders(apiKey) {
   return headers;
 }
 
+// Model ids that are not usable as a chat/instruct model for this tool.
+const NON_CHAT_MODEL = /embed|image|dall-?e|tts|whisper|audio|moderation|rerank|realtime|transcribe|search|-edit|davinci|babbage/i;
+// Ids that are very likely a chat/instruct model, preferred when present.
+const PREFERRED_CHAT_MODEL = /gpt|chat|instruct|(?:^|[-_])o[0-9]/i;
+
 function chooseChatModel(models) {
   const list = Array.isArray(models?.data) ? models.data : [];
-  const chatModel = list.find((model) => {
-    const id = String(model?.id || '').toLowerCase();
-    return id && !id.includes('embed') && !id.includes('embedding') && !id.includes('image');
-  });
-  return chatModel?.id || list[0]?.id || '';
+  const ids = list.map((model) => String(model?.id || '')).filter(Boolean);
+  // Drop clearly non-chat models (embeddings, image, audio, legacy completions).
+  const candidates = ids.filter((id) => !NON_CHAT_MODEL.test(id));
+  // Prefer an obvious chat model (matters for OpenAI's large unsorted list);
+  // otherwise fall back to the first candidate, then the first id at all.
+  const preferred = candidates.find((id) => PREFERRED_CHAT_MODEL.test(id));
+  return preferred || candidates[0] || ids[0] || '';
 }
 
 async function fetchProviderModels(baseUrl, apiKey) {

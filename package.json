@@ -1,6 +1,6 @@
 {
   "name": "cardwright",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Standalone Character Card V2 editor with LM Studio AI editing, lorebook support, audit tools, and PNG export.",
   "private": true,
   "type": "module",

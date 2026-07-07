@@ -1199,8 +1199,9 @@ async function runAudit() {
           'This is a full-card audit, not an audit of only the selected field.',
           'Be concise. Use sections: Strengths, Issues, Field-by-field notes, Highest-impact fixes.',
           'Do not rewrite the whole card unless a specific field is broken.',
+          'Any text marked "[…field shortened for this prompt…]" was trimmed only to fit this request — the real field is complete, so never report it as cut off or truncated.',
           '',
-          summarizeCardForPrompt(10000),
+          summarizeCardForPrompt(8000),
         ].join('\n'),
       },
     ]);
@@ -1255,14 +1256,21 @@ function buildSystemPrompt() {
   ].join('\n');
 }
 
-function summarizeCardForPrompt(limit = 7000) {
+// Build a labelled dump of every card field. Long fields are capped PER FIELD
+// with an explicit marker — never a blind mid-word slice of the whole blob,
+// which used to drop later fields entirely and make the AI report a field as
+// "cut off mid-sentence" when it was really the prompt being truncated.
+function summarizeCardForPrompt(perField = 3000) {
   const lines = FIELD_DEFS.map((field) => {
-    const value = getField(card, field.key).trim();
+    let value = getField(card, field.key).trim();
+    if (value.length > perField) {
+      value = `${value.slice(0, perField)}\n[…field shortened for this prompt; the real field is longer and complete…]`;
+    }
     return `## ${field.label} (${field.key})\n${value || '(empty)'}`;
   });
   const concept = getConcept().trim();
   const head = concept ? `## Concept / Brief\n${concept}\n\n` : '';
-  return (head + lines.join('\n\n')).slice(0, limit);
+  return head + lines.join('\n\n');
 }
 
 async function callAi(messages) {
@@ -1434,10 +1442,12 @@ function applyProviderPreset(provider, { clearApiKey = false } = {}) {
   const def = providerDef(provider);
   els.providerInput.value = AI_PROVIDERS[provider] ? provider : DEFAULT_PROVIDER;
   if (provider !== 'custom') {
+    // Switching provider is an explicit user action, so reset base URL and
+    // model to the new provider's preset — a model name from another backend
+    // (e.g. "gpt-4o-mini" left over after switching to LM Studio) is never
+    // valid. Detect / auto-detect fills in the real model afterwards.
     els.baseUrlInput.value = def.baseUrl;
-    if (!els.modelInput.value.trim() || els.modelInput.value.trim() === DEFAULT_MODEL || def.model !== DEFAULT_MODEL) {
-      els.modelInput.value = def.model;
-    }
+    els.modelInput.value = def.model;
   }
   if (clearApiKey) els.apiKeyInput.value = '';
   updateProviderUi();
