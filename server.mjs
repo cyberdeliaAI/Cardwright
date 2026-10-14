@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
+import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { APP_VERSION } from './version.js';
 
@@ -28,27 +28,57 @@ const mimeTypes = {
   '.png': 'image/png',
 };
 
+// Only browser assets are public; repository files and secrets are never served.
+const publicFiles = new Set([
+  '/index.html', '/styles.css', '/app.js', '/token-utils.js', '/audit.js',
+  '/cropper.js', '/png.js', '/version.js', '/examples/screenshot01.png',
+  '/placeholders.js',
+]);
+
 function send(req, res, status, body, headers = {}) {
-  res.writeHead(status, headers);
+  res.writeHead(status, {
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    ...headers,
+  });
   res.end(req.method === 'HEAD' ? undefined : body);
 }
 
 async function readJson(req) {
   let body = '';
   for await (const chunk of req) body += chunk;
-  return body ? JSON.parse(body) : {};
+  const payload = body ? JSON.parse(body) : {};
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('Expected a JSON object');
+  return payload;
 }
 
 function resolveStaticPath(urlPath) {
-  const requested = urlPath === '/' ? '/index.html' : urlPath;
-  const safePath = normalize(requested).replace(/^(\.\.[/\\])+/, '');
-  return join(root, safePath);
+  const requested = urlPath === '/' ? '/index.html' : decodeURIComponent(urlPath);
+  return publicFiles.has(requested) ? join(root, requested) : null;
+}
+
+function isAllowedLocalRequest(req) {
+  const address = req.socket.remoteAddress || '';
+  if (address !== '::1' && !/^127\./.test(address) && !/^::ffff:127\./.test(address)) return false;
+  try {
+    const authority = new URL(`http://${req.headers.host}`);
+    if (authority.username || authority.password || authority.pathname !== '/' || authority.search || authority.hash) return false;
+    if (!['localhost', '127.0.0.1', '[::1]'].includes(authority.hostname)) return false;
+    if (Number(authority.port || 80) !== port) return false;
+    if (req.headers.origin && req.headers.origin !== authority.origin) return false;
+    if (req.headers['sec-fetch-site'] === 'cross-site'
+      && !(req.method === 'GET' && req.headers['sec-fetch-mode'] === 'navigate'
+        && req.headers['sec-fetch-dest'] === 'document')) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function isLocalBaseUrl(baseUrl) {
   try {
     const { hostname } = new URL(baseUrl);
-    return ['localhost', '127.0.0.1', '::1'].includes(hostname);
+    return ['localhost', '127.0.0.1', '[::1]'].includes(hostname);
   } catch {
     return false;
   }
@@ -63,14 +93,31 @@ function normalizeBaseUrl(baseUrl, provider) {
   let base = String(baseUrl || fallback).trim().replace(/\/+$/, '');
   try {
     const url = new URL(base);
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) {
+      throw new Error('Invalid provider URL');
+    }
     if (!url.pathname || url.pathname === '/') {
       url.pathname = '/v1';
-      base = url.toString().replace(/\/+$/, '');
     }
+    base = url.toString().replace(/\/+$/, '');
   } catch {
-    base = fallback;
+    throw new Error('Invalid provider base URL. Use an HTTP or HTTPS URL without credentials, query or fragment.');
   }
   return base;
+}
+
+function resolveProviderSettings(payload) {
+  for (const key of ['provider', 'baseUrl', 'apiKey', 'model']) {
+    if (payload[key] != null && typeof payload[key] !== 'string') throw new Error(`Invalid ${key}`);
+  }
+  const configuredProvider = process.env.OPENAI_PROVIDER || defaultProvider;
+  const provider = payload.provider || configuredProvider;
+  const baseUrl = normalizeBaseUrl(payload.baseUrl || process.env.OPENAI_BASE_URL, provider);
+  const configuredBaseUrl = normalizeBaseUrl(process.env.OPENAI_BASE_URL, configuredProvider);
+  // A server credential belongs to its configured endpoint, never an arbitrary
+  // endpoint supplied by the browser. Browser credentials remain explicit.
+  const apiKey = payload.apiKey || (baseUrl === configuredBaseUrl ? process.env.OPENAI_API_KEY || '' : '');
+  return { provider, baseUrl, apiKey };
 }
 
 function resolveRequestedModel(provider, requestedModel) {
@@ -106,6 +153,7 @@ function chooseChatModel(models) {
 async function fetchProviderModels(baseUrl, apiKey) {
   const upstream = await fetch(`${baseUrl}/models`, {
     method: 'GET',
+    redirect: 'error',
     headers: buildProviderHeaders(apiKey),
   });
   const text = await upstream.text();
@@ -136,18 +184,18 @@ async function resolveModel(baseUrl, apiKey, requestedModel) {
 
 async function handleModels(req, res) {
   let payload;
+  let settings;
   try {
     payload = await readJson(req);
-  } catch {
-    send(req, res, 400, JSON.stringify({ error: 'Invalid JSON body' }), {
+    settings = resolveProviderSettings(payload);
+  } catch (error) {
+    send(req, res, 400, JSON.stringify({ error: error.message || 'Invalid JSON body' }), {
       'Content-Type': 'application/json',
     });
     return;
   }
 
-  const provider = payload.provider || process.env.OPENAI_PROVIDER || defaultProvider;
-  const baseUrl = normalizeBaseUrl(payload.baseUrl || process.env.OPENAI_BASE_URL, provider);
-  const apiKey = payload.apiKey || process.env.OPENAI_API_KEY || '';
+  const { provider, baseUrl, apiKey } = settings;
 
   if (!apiKey && !isLocalBaseUrl(baseUrl)) {
     send(req, res, 400, JSON.stringify({ error: 'Missing API key. Add it in Settings or set OPENAI_API_KEY.' }), {
@@ -189,18 +237,18 @@ function handleConfig(req, res) {
 
 async function handleAi(req, res) {
   let payload;
+  let settings;
   try {
     payload = await readJson(req);
-  } catch {
-    send(req, res, 400, JSON.stringify({ error: 'Invalid JSON body' }), {
+    settings = resolveProviderSettings(payload);
+  } catch (error) {
+    send(req, res, 400, JSON.stringify({ error: error.message || 'Invalid JSON body' }), {
       'Content-Type': 'application/json',
     });
     return;
   }
 
-  const provider = payload.provider || process.env.OPENAI_PROVIDER || defaultProvider;
-  const baseUrl = normalizeBaseUrl(payload.baseUrl || process.env.OPENAI_BASE_URL, provider);
-  const apiKey = payload.apiKey || process.env.OPENAI_API_KEY || '';
+  const { provider, baseUrl, apiKey } = settings;
   const requestedModel = resolveRequestedModel(provider, payload.model || process.env.OPENAI_MODEL);
   const model = await resolveModel(baseUrl, apiKey, requestedModel);
 
@@ -214,6 +262,7 @@ async function handleAi(req, res) {
   try {
     const upstream = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
+      redirect: 'error',
       headers: buildProviderHeaders(apiKey),
       body: JSON.stringify({
         model,
@@ -252,7 +301,25 @@ function handleShutdown(req, res) {
 }
 
 const server = createServer(async (req, res) => {
-  const url = new URL(req.url || '/', `http://${req.headers.host}`);
+  if (!isAllowedLocalRequest(req)) {
+    send(req, res, 403, 'Forbidden');
+    return;
+  }
+  let url;
+  try {
+    const origin = new URL(`http://${req.headers.host}`).origin;
+    url = new URL(req.url || '/', origin);
+    if (url.origin !== origin) throw new Error('Unexpected request origin');
+  } catch {
+    send(req, res, 400, 'Invalid request URL');
+    return;
+  }
+
+  if (req.method === 'POST' && ['/api/ai', '/api/models'].includes(url.pathname)
+    && (req.headers['content-type'] || '').split(';')[0].trim().toLowerCase() !== 'application/json') {
+    send(req, res, 415, JSON.stringify({ error: 'Use Content-Type: application/json' }), { 'Content-Type': 'application/json' });
+    return;
+  }
 
   if (req.method === 'POST' && url.pathname === '/api/ai') {
     await handleAi(req, res);
@@ -265,7 +332,11 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && url.pathname === '/api/config') {
-    handleConfig(req, res);
+    try {
+      handleConfig(req, res);
+    } catch (error) {
+      send(req, res, 400, JSON.stringify({ error: error.message }), { 'Content-Type': 'application/json' });
+    }
     return;
   }
 
@@ -281,8 +352,8 @@ const server = createServer(async (req, res) => {
 
   try {
     const filePath = resolveStaticPath(url.pathname);
-    if (!filePath.startsWith(root)) {
-      send(req, res, 403, 'Forbidden');
+    if (!filePath) {
+      send(req, res, 404, 'Not found');
       return;
     }
 

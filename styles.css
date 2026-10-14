@@ -264,7 +264,8 @@ label.button.primary {
 }
 
 #fileInput,
-#avatarInput {
+#avatarInput,
+#personaImportInput {
   position: absolute;
   inline-size: 1px;
   block-size: 1px;
@@ -362,7 +363,34 @@ label.button.primary {
   background: #182d3e;
 }
 
-.search-panel {
+.avatar-prompt-output {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.avatar-prompt-output .copy-output {
+  width: 32px;
+}
+
+#avatarPromptEditor {
+  min-height: 150px;
+  padding: 10px;
+  resize: vertical;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.avatar-prompt-status {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.search-panel,
+.placeholder-panel {
   min-width: 0;
   max-width: 100%;
   padding: 12px;
@@ -371,8 +399,13 @@ label.button.primary {
   overflow: hidden;
 }
 
-.search-panel label {
+.search-panel label,
+.placeholder-panel label {
   margin-bottom: 0;
+}
+
+.placeholder-panel .fineprint {
+  margin: 0;
 }
 
 .search-panel input {
@@ -750,6 +783,51 @@ label.inline input {
 }
 
 /* Concept view ------------------------------------------------------------- */
+.persona-panel {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+}
+
+.persona-panel .fineprint,
+.persona-status {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.persona-manager {
+  margin-top: 12px;
+}
+
+.persona-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.persona-editor {
+  margin-top: 12px;
+}
+
+.persona-editor label:not(:first-child) {
+  margin-top: 10px;
+}
+
+#personaDescriptionInput {
+  min-height: 110px;
+  padding: 10px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.persona-status {
+  color: var(--muted);
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+
 .concept-panel {
   padding: 16px;
   min-height: 0;

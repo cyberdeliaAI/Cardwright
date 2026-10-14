@@ -174,6 +174,34 @@ Generated fields appear as drafts. You can apply individual fields or apply all.
 
 The concept is saved with the card and used as context for later AI edits.
 
+### User Persona Presets
+
+The **User Persona** selector defaults to **None**. A persona describes the player (`{{user}}` in the standard preset) and is used only when generating a card from the concept. It helps shape the relationship, scenario, opening, and example dialogue. Generated fields use your selected placeholder preset; the persona description itself is kept unchanged.
+
+Open **Manage personas**, click **New Persona**, and fill in **Name** and **Description**. Use **Save Preset** to add it to your reusable library. Selecting a preset creates a copy for the current card. Editing that copy is auto-saved locally; the library changes only when you click **Save Preset**. Deleting a preset keeps the current card's copy available.
+
+The selected persona is restored with the card when you reload the browser. New cards and imported JSON/PNG cards start with **None**. Persona metadata is not included in card exports, AI field edits, audits, or avatar prompt requests. Generated card fields may still contain relationships or context informed by the persona.
+
+Use **Export Presets** for a separate JSON backup of the saved library. Unsaved card-copy edits are not included in this backup. **Import Presets** validates the whole file, skips identical presets, and keeps both versions when IDs conflict. Importing presets does not change the current card or its selected persona.
+
+### Role Placeholders
+
+The **Placeholders** selector in the sidebar offers three presets:
+
+| Preset | Character | Player |
+| --- | --- | --- |
+| Standard (default) | `{{char}}` | `{{user}}` |
+| Single braces | `{char}` | `{user}` |
+| Full character | `{character}` | `{user}` |
+
+Changing the selection never converts existing card text, greetings, lore entries, concepts or persona descriptions. New card-generation drafts use the selected notation. Field edits and lorebook AI are instructed to keep existing tokens exactly; new references use the first existing form for each role in the target text, or the selected preset when that role has no token yet. This is a prompt instruction, so review AI output before applying field drafts.
+
+The preference is auto-saved locally with the current card and restored on reload. New cards and JSON/PNG imports start with **Standard**, while their existing tokens stay intact. The preference is not included in JSON/PNG exports or persona backups. Cardwright writes the literal tokens to exports; the receiving chat app determines how they are interpreted.
+
+Each AI request keeps the notation selected when it started. Changing the preference while waiting does not convert its result. Field drafts and generated drafts display their request notation. Avatar prompts continue to use visual descriptions without role tokens.
+
+Local and AI audits recognize all three supported forms, even if the current preference differs. The local audit checks player impersonation for both player tokens and accepts each character form in example dialogue and personality. Mixed notation receives advisory information rather than automatic conversion. Unfinished text such as `TODO` and `TBD` is checked separately.
+
 ## 9. Card Tab
 
 The Card tab is where you edit the main character card fields.
@@ -227,7 +255,9 @@ Run
 
 AI edits create a draft. You must review and apply the draft before it changes the card.
 
-This makes destructive edits less likely.
+The draft header identifies its original field or alternate greeting, even if you navigate elsewhere while waiting. Apply changes that original target. Greetings keep their identity when earlier greetings are deleted.
+
+If you edit the source text after requesting the draft, Apply is disabled to preserve your newer edits. The draft remains available for review or copying; request a new edit to use the updated source. Deleted or replaced greetings cannot receive old drafts. Starting a new card or importing another card clears drafts and ignores responses for the previous card.
 
 ## 11. Lorebook Tab
 
@@ -284,7 +314,7 @@ Then click:
 Improve content with AI
 ```
 
-The entry content is replaced with the AI result, and the change is auto-saved.
+The original entry content is replaced with the AI result, and the change is auto-saved, even if you select another entry or tab while waiting. The selected editor is updated only when it still shows that entry. If you edit the original content while waiting, delete the entry, or open another card, the old result is ignored and your current data is preserved.
 
 Good lorebook entries should be durable facts, not one-time scenes.
 
@@ -301,7 +331,7 @@ It checks:
 - required fields
 - token budgets
 - placeholder text
-- possible `{{user}}` impersonation
+- possible player impersonation (`{{user}}` or `{user}`)
 - example dialogue formatting
 - system prompt phrasing
 - lorebook keyword collisions
@@ -372,6 +402,14 @@ Set / Crop Image
 ```
 
 Cardwright opens a cropper with a 2:3 portrait ratio.
+
+### Generating an Avatar Prompt
+
+Click **Generate Avatar Prompt** in the Avatar panel to ask the selected AI provider for an image-generation prompt based on the current card's appearance, personality, setting, and concept.
+
+The result appears in an editable text box. Adjust it as needed, then use the copy button to paste it into your preferred image generator. This generates text only; it does not create or replace the avatar image.
+
+The prompt and your edits are saved with the current card in browser storage. They are not included in JSON or PNG exports. Loading another card or starting a new card clears the prompt.
 
 After setting an avatar, you can export:
 
@@ -496,7 +534,13 @@ PORT=8787
 node server.mjs
 ```
 
-If an API key is entered in the Settings panel, it is sent through the local server for requests. If the field is blank, the server can use `OPENAI_API_KEY`.
+If an API key is entered in the Settings panel, it is sent through the local server for requests and saved in this browser's local storage. Switching provider or changing the base URL clears the old key; enter the key for the new endpoint if required.
+
+If the field is blank, the server can use `OPENAI_API_KEY` only for its configured endpoint (`OPENAI_PROVIDER` and `OPENAI_BASE_URL`). For OpenAI, set `OPENAI_PROVIDER=openai` together with the key. The key is never returned to the browser or reused for a different endpoint. Provider URLs must use HTTP or HTTPS without embedded credentials, query or fragment. Configure the final URL directly; redirects are rejected.
+
+Automatic model detection runs only while the local model is unset or `local-model`. Manually selected models are preserved on reload and during AI requests. **Detect Model** explicitly selects a detected model, while **Test** keeps your current choice. Results from either action are ignored if you change the settings while waiting.
+
+The app server accepts local clients only and checks Host and browser origin. It serves only the public app assets; repository files and hidden files are unavailable over HTTP. Open Cardwright directly at `http://127.0.0.1:8787` or `http://localhost:8787` (using your configured port).
 
 ## 18. Autosave
 

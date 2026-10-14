@@ -10,7 +10,7 @@
   <main class="app">
     <header class="topbar">
       <div>
-        <h1 class="brand-title">Cardwright <span id="appVersion" class="app-version">v1.1.0</span></h1>
+        <h1 class="brand-title">Cardwright <span id="appVersion" class="app-version">v1.2.0</span></h1>
         <div class="topbar-meta">
           <p id="cardSummary">Create or load a character card to begin.</p>
           <span id="aiStatus" class="ai-status idle" role="status" aria-live="polite">
@@ -41,10 +41,30 @@
               <span class="avatar-placeholder">No avatar</span>
             </div>
             <button id="setAvatarBtn" class="button" type="button" disabled>Set / Crop Image</button>
+            <button id="generateAvatarPromptBtn" class="button" type="button" disabled>Generate Avatar Prompt</button>
+            <div id="avatarPromptOutput" class="avatar-prompt-output hidden">
+              <div class="output-header">
+                <label for="avatarPromptEditor">Avatar prompt</label>
+                <button id="copyAvatarPromptBtn" class="button icon-button copy-output" type="button" aria-label="Copy avatar prompt" title="Copy avatar prompt" disabled>⧉</button>
+              </div>
+              <textarea id="avatarPromptEditor" rows="6" placeholder="Generate a prompt, then edit it here..." disabled></textarea>
+              <p class="fineprint">Copy this prompt into your image generator.</p>
+              <p id="avatarPromptStatus" class="avatar-prompt-status" role="status" aria-live="polite"></p>
+            </div>
           </div>
         </details>
 
         <nav id="fieldNav" class="field-nav" aria-label="Card fields"></nav>
+
+        <section class="panel placeholder-panel" aria-label="Role placeholders">
+          <label for="placeholderPresetSelect">Placeholders</label>
+          <select id="placeholderPresetSelect" disabled>
+            <option value="standard">Standard: {{char}} / {{user}}</option>
+            <option value="single">Single braces: {char} / {user}</option>
+            <option value="character">Full character: {character} / {user}</option>
+          </select>
+          <p class="fineprint">Used for new output. Existing tokens are preserved. Saved locally with this card.</p>
+        </section>
 
         <section class="panel search-panel" aria-label="Search and replace">
           <label for="searchInput">Find</label>
@@ -83,6 +103,32 @@
             </div>
             <p class="field-guidance">Describe your character idea — who they are, the vibe, the setting, what makes them fun to roleplay. The AI drafts all the card fields from this, and keeps it as context for later edits.</p>
             <textarea id="conceptInput" placeholder="e.g. A weary lighthouse keeper on a haunted coast who speaks in clipped sentences and secretly writes poetry. Drawn to {{user}} but terrified of being known..." disabled></textarea>
+            <section class="persona-panel" aria-label="User persona presets">
+              <label for="personaPresetSelect">User Persona</label>
+              <select id="personaPresetSelect" disabled><option value="">None</option></select>
+              <p id="personaGuidance" class="fineprint">Optional reference for {{user}}, used only when generating a card.</p>
+              <details id="personaManager" class="persona-manager">
+                <summary>Manage personas</summary>
+                <div class="persona-actions">
+                  <button id="newPersonaBtn" class="button" type="button" disabled>New Persona</button>
+                  <button id="savePersonaBtn" class="button" type="button" disabled>Save Preset</button>
+                  <button id="deletePersonaBtn" class="button danger" type="button" disabled>Delete Preset</button>
+                </div>
+                <div id="personaEditor" class="persona-editor hidden">
+                  <label for="personaNameInput">Name</label>
+                  <input id="personaNameInput" type="text" placeholder="e.g. Mira" disabled>
+                  <label for="personaDescriptionInput">Description</label>
+                  <textarea id="personaDescriptionInput" rows="4" placeholder="Background, appearance, personality, and role of {{user}}..." disabled></textarea>
+                  <p class="fineprint">Edits change this card's copy. Save Preset to update the library.</p>
+                </div>
+                <div class="persona-actions">
+                  <button id="exportPersonasBtn" class="button" type="button" disabled>Export Presets</button>
+                  <button id="importPersonasBtn" class="button" type="button">Import Presets</button>
+                  <input id="personaImportInput" type="file" accept=".json,application/json" aria-label="Import persona presets">
+                </div>
+              </details>
+              <p id="personaStatus" class="persona-status" role="status" aria-live="polite"></p>
+            </section>
             <label id="conceptOutputLabel">Generated drafts</label>
             <div id="conceptResults" class="concept-results">Write a concept above and click “Generate card from concept” to draft the fields.</div>
             <pre id="conceptLog" class="log-output" aria-live="polite"></pre>
@@ -132,12 +178,13 @@
 
             <div id="draftPanel" class="draft-panel hidden">
               <div class="draft-header">
-                <strong>AI Draft</strong>
+                <strong id="draftLabel">AI Draft</strong>
                 <div>
                   <button id="applyDraftBtn" class="button primary">Apply</button>
                   <button id="discardDraftBtn" class="button">Discard</button>
                 </div>
               </div>
+              <p id="draftPlaceholderScope" class="fineprint"></p>
               <textarea id="draftEditor"></textarea>
             </div>
 
@@ -239,7 +286,7 @@
               </div>
               <button id="runLocalAuditBtn" class="button primary" type="button" disabled>Run Audit</button>
             </div>
-            <p class="field-guidance">Runs entirely offline — no AI call. Checks required fields, token budgets, placeholder text, {{user}} impersonation, and lorebook health.</p>
+            <p id="auditGuidance" class="field-guidance">Runs entirely offline — no AI call. Checks required fields, token budgets, placeholder text, {{user}} impersonation, and lorebook health.</p>
             <div id="auditReport" class="audit-report">Load a card and click “Run Audit” to analyze it.</div>
           </div>
 

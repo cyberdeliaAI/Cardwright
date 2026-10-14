@@ -2,6 +2,7 @@
 // Runs entirely in-process and returns a structured report.
 
 import { estimateTokens } from './token-utils.js';
+import { findPlaceholderMatches, getPlaceholderContext, hasMixedPlaceholders } from './placeholders.js';
 
 const LABELS = {
   description: 'Description',
@@ -35,9 +36,7 @@ const PLACEHOLDER_PATTERNS = [
   /\[\.\.\.?\]/,
 ];
 
-const USER_IMPERSONATION = [
-  /\{\{user\}\}\s+(feels?|thinks?|decides?|walks?|enters?|sits?|looks?|says?|nods?|smiles?|frowns?)/i,
-];
+const USER_IMPERSONATION = /^\s+(feels?|thinks?|decides?|walks?|enters?|sits?|looks?|says?|nods?|smiles?|frowns?)\b/i;
 
 const NEGATIVE_PHRASING = [
   /\bdon'?t\b/i,
@@ -51,12 +50,12 @@ const NEGATIVE_PHRASING = [
 
 /**
  * Run the full local audit.
- * @param {{fields: Object<string,string>, name?: string, lore?: Array}} input
+ * @param {{fields: Object<string,string>, name?: string, lore?: Array, placeholderPresetId?: string}} input
  *   fields keyed by CCS field name; lore is an array of normalized entries
  *   ({ name, keys, secondaryKeys, content, constant, enabled }).
  * @returns {{issues: Array, stats: Object, score: number}}
  */
-export function runLocalAudit({ fields = {}, name = '', lore = [] }) {
+export function runLocalAudit({ fields = {}, name = '', lore = [], placeholderPresetId = 'standard' }) {
   const issues = [];
   const add = (severity, category, message, field) => {
     issues.push({ severity, category, message, field });
@@ -83,11 +82,16 @@ export function runLocalAudit({ fields = {}, name = '', lore = [] }) {
     }
   }
 
-  // 3. {{user}} impersonation on narrative fields ---------------------------
+  // 3. Player impersonation on narrative fields -----------------------------
   for (const key of ['description', 'scenario', 'first_mes', 'mes_example', 'system_prompt']) {
     const content = fields[key];
-    if (content && USER_IMPERSONATION.some((p) => p.test(content))) {
-      add('warning', 'consistency', `"${LABELS[key]}" appears to narrate {{user}}'s actions or feelings. Let the player control {{user}}.`, key);
+    const impersonated = content && findPlaceholderMatches(content).find((match) =>
+      match.role === 'user' && USER_IMPERSONATION.test(content.slice(match.index + match.token.length)));
+    if (impersonated) {
+      add('warning', 'consistency', `"${LABELS[key]}" appears to narrate ${impersonated.token}'s actions or feelings. Let the player control ${impersonated.token}.`, key);
+    }
+    if (content && hasMixedPlaceholders(content)) {
+      add('info', 'consistency', `"${LABELS[key]}" mixes role-placeholder notation. Check whether this is intentional; existing text is kept unchanged.`, key);
     }
   }
 
@@ -104,7 +108,8 @@ export function runLocalAudit({ fields = {}, name = '', lore = [] }) {
     const tail = fields.first_mes.slice(-200);
     const hook = /\?/.test(tail) || /\.{3}|—|–/.test(fields.first_mes.trim());
     if (!hook) {
-      add('info', 'fields', 'First Message may lack an open-ended hook — consider ending on a question or open action for {{user}}.', 'first_mes');
+      const context = getPlaceholderContext(placeholderPresetId, fields.first_mes);
+      add('info', 'fields', `First Message may lack an open-ended hook — consider ending on a question or open action for ${context.user}.`, 'first_mes');
     }
   }
 
@@ -113,8 +118,9 @@ export function runLocalAudit({ fields = {}, name = '', lore = [] }) {
     if (!fields.mes_example.includes('<START>')) {
       add('info', 'fields', 'Example Dialogue has no <START> separators between exchanges.', 'mes_example');
     }
-    if (!fields.mes_example.includes('{{char}}')) {
-      add('info', 'fields', 'Example Dialogue has no {{char}}: labels.', 'mes_example');
+    if (!findPlaceholderMatches(fields.mes_example).some((match) => match.role === 'char')) {
+      const context = getPlaceholderContext(placeholderPresetId, fields.mes_example);
+      add('info', 'fields', `Example Dialogue has no ${context.char}: labels.`, 'mes_example');
     }
   }
 
@@ -123,12 +129,14 @@ export function runLocalAudit({ fields = {}, name = '', lore = [] }) {
     const n = name.toLowerCase();
     if (fields.description.toLowerCase().includes(n)
       && !fields.personality.toLowerCase().includes(n)
-      && !fields.personality.includes('{{char}}')) {
-      add('info', 'consistency', `Name "${name}" appears in Description but not Personality. Consider {{char}} or the name in Personality.`);
+      && !findPlaceholderMatches(fields.personality).some((match) => match.role === 'char')) {
+      const context = getPlaceholderContext(placeholderPresetId, fields.personality);
+      add('info', 'consistency', `Name "${name}" appears in Description but not Personality. Consider ${context.char} or the name in Personality.`);
     }
   }
-  if (fields.first_mes?.includes('{{user}}') && !fields.scenario?.trim()) {
-    add('info', 'consistency', 'First Message references {{user}} but Scenario is empty. A little scenario context can help.', 'scenario');
+  const playerReference = findPlaceholderMatches(fields.first_mes).find((match) => match.role === 'user');
+  if (playerReference && !fields.scenario?.trim()) {
+    add('info', 'consistency', `First Message references ${playerReference.token} but Scenario is empty. A little scenario context can help.`, 'scenario');
   }
 
   // 8. Lorebook health -------------------------------------------------------
