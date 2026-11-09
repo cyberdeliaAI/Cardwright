@@ -1608,3 +1608,25 @@ test('an old source response cannot unlock or overwrite a newer card source requ
   assert.equal(app.els.sourceConceptDraftEditor.value, 'New card draft');
   assert.equal(app.els.createSourceConceptBtn.disabled, false);
 });
+
+test('a source-workspace storage quota failure cannot block autosave of newer card edits', async () => {
+  const app = await createApp(new Map(), {
+    respondToAi: () => aiResponse('Prepared source concept'),
+    writeStorage: (key, value) => {
+      if (key === 'cardwright_card' && JSON.parse(value).sourceText) throw new Error('Fixture source quota');
+    },
+  });
+  await importJson(app, generationCard());
+  sourceInput(app);
+  await app.createConceptFromSource();
+  app.els.fieldEditor.value = 'Latest manually edited card description';
+  app.els.fieldEditor.emit('input');
+  const before = snapshot(app.card);
+  app.persistCard();
+  assert.deepEqual(JSON.parse(app.storage.get('cardwright_card')).card, before);
+  assert.equal(app.els.sourceConceptDraftEditor.value, 'Prepared source concept');
+  assert.ok(app.els.sourceTextInput.value.length > 0);
+  assert.match(app.els.sourceConceptStatus.textContent, /Card auto-saved/);
+  const restored = await createApp(app.storage);
+  assert.equal(restored.card.data.description, 'Latest manually edited card description');
+});

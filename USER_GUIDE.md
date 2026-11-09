@@ -184,6 +184,8 @@ If the current concept or source changes, Apply is blocked so an older draft can
 
 This feature accepts pasted text only, up to 24,000 characters. Longer input is rejected without trimming. A URL is not fetched; copy relevant text from the page yourself. Neither the original source nor a prepared draft is automatically added to the concept.
 
+If browser storage cannot hold the source workspace, Cardwright retries autosave with the card data alone. The source and draft remain in the open editor, and a message asks you to keep a copy before closing. Your newer card edits can still be saved when the smaller card record fits.
+
 ### User Persona Presets
 
 The **User Persona** selector defaults to **None**. A persona describes the player (`{{user}}` in the standard preset) and is used only when generating a card from the concept. It helps shape the relationship, scenario, opening, and example dialogue. Generated fields use your selected placeholder preset; the persona description itself is kept unchanged.

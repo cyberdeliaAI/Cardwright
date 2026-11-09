@@ -3081,7 +3081,7 @@ function scheduleSave() {
 function persistCard() {
   try {
     if (card) {
-      localStorage.setItem(STORAGE_CARD, JSON.stringify({
+      const saved = {
         card,
         sourceName,
         selectedField,
@@ -3097,7 +3097,15 @@ function persistCard() {
           content: els.sourceConceptDraftEditor.value,
           placeholderPresetId: sourceConceptDraft.placeholderContext.presetId,
         } : null,
-      }));
+      };
+      try {
+        localStorage.setItem(STORAGE_CARD, JSON.stringify(saved));
+      } catch {
+        // A large preparation workspace must not prevent saving the card itself.
+        const { sourceText, sourceConceptDraft: preparedDraft, ...cardOnly } = saved;
+        localStorage.setItem(STORAGE_CARD, JSON.stringify(cardOnly));
+        if (sourceText || preparedDraft) els.sourceConceptStatus.textContent = 'Card auto-saved, but the source workspace could not be saved. Keep a copy of your source and draft before closing; both remain available here.';
+      }
       localStorage.removeItem(LEGACY_STORAGE_CARD);
     } else {
       localStorage.removeItem(STORAGE_CARD);

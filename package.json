@@ -56,9 +56,11 @@
       "cropper.js",
       "version.js",
       "placeholders.js",
-      "assets/icon.png",
       "package.json",
-      "LICENSE"
+      "LICENSE",
+      "assets/cardwright-icon.png",
+      "assets/cardwright.ico",
+      "assets/cardwright-icon-1024.png"
     ],
     "afterPack": "electron/harden.cjs",
     "artifactName": "cardwright-${version}-${os}-${arch}.${ext}",
@@ -67,20 +69,20 @@
         "zip"
       ],
       "category": "public.app-category.entertainment",
-      "icon": "assets/icon.png",
+      "icon": "assets/cardwright.icns",
       "identity": "-"
     },
     "win": {
       "target": [
         "zip"
       ],
-      "icon": "assets/icon.png"
+      "icon": "assets/cardwright.ico"
     },
     "linux": {
       "target": [
         "tar.gz"
       ],
-      "icon": "assets/icon.png",
+      "icon": "assets/cardwright-icon-1024.png",
       "category": "Utility"
     }
   },

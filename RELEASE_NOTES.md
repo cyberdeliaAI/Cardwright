@@ -13,6 +13,7 @@ Cardwright 1.3.0 adds source-text concept drafts and standalone Electron desktop
 - macOS Apple Silicon and Intel, Windows x64, and Linux x64, with Electron 45.2.3.
 - The same editor and local AI-provider server in a standalone window; no separate Node.js installation is needed for downloads.
 - Standard Edit/View/Window menus, remembered normal window size, guarded external links and native export dialogs.
+- A dedicated Cardwright app icon, browser favicon and GitHub README badges.
 - Automatic daily stable-release notifications with an opt-out and **Help → Check for Updates**. Downloading and installing remain your choice.
 - macOS release downloads use Developer ID signing and Apple notarization. Windows downloads are not Authenticode-signed.
 
@@ -25,3 +26,11 @@ Cardwright 1.3.0 adds source-text concept drafts and standalone Electron desktop
 Every download is extracted and tested on its target OS before publication, including native JSON export, card-data preservation, source-draft review/apply and persistence after restarting. SHA-256 checksums accompany the downloads. AI tests use a local mock provider.
 
 Extract your platform archive and open **Cardwright.app** (macOS), **Cardwright.exe** (Windows), or **Cardwright** (Linux). Keep Windows/Linux extracted files together. See the [User Guide](https://github.com/cyberdeliaAI/Cardwright/blob/v1.3.0/USER_GUIDE.md) for details.
+
+The publisher-maintained Homebrew tap installs the matching notarized Mac app:
+
+```sh
+brew install --cask cyberdeliaAI/apps/cardwright
+```
+
+Homebrew becomes available after the tap's verified version and SHA-256 values have been updated for this release.

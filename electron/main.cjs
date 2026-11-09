@@ -49,7 +49,7 @@ function installMenu() {
 function createWindow() {
   const sizeFile = path.join(app.getPath('userData'), 'window.json');
   window = new BrowserWindow({ ...windowSize(sizeFile, screen.getPrimaryDisplay().workArea), show: false,
-    title: 'Cardwright', backgroundColor: '#111416', icon: path.join(__dirname, '../assets/icon.png'),
+    title: 'Cardwright', backgroundColor: '#111416', icon: path.join(__dirname, '../assets/cardwright-icon-1024.png'),
     webPreferences: { partition: 'persist:cardwright', nodeIntegration: false, contextIsolation: true, sandbox: true,
       webSecurity: true, allowRunningInsecureContent: false, webviewTag: false, devTools: !app.isPackaged } });
   rememberWindowSize(window, sizeFile);

@@ -59,7 +59,7 @@ const postJson = (body = {}) => ({ method: 'POST', headers: { 'content-type': 'a
 
 test('all frontend assets remain available over GET and HEAD', async () => {
   const server = createTestServer();
-  for (const path of ['/', '/index.html', '/app.js', '/styles.css', '/token-utils.js', '/audit.js', '/cropper.js', '/png.js', '/version.js', '/placeholders.js']) {
+  for (const path of ['/', '/index.html', '/app.js', '/styles.css', '/token-utils.js', '/audit.js', '/cropper.js', '/png.js', '/version.js', '/placeholders.js', '/assets/cardwright-icon.png', '/assets/cardwright.ico']) {
     assert.equal((await server.request(path)).status, 200, path);
     const response = await server.request(path, { method: 'HEAD' });
     assert.equal(response.status, 200, path);

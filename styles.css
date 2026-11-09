@@ -414,6 +414,7 @@ label.button.primary {
 .source-concept-body .fineprint { margin: 0; }
 .source-concept-body textarea { min-height: 140px; }
 .source-concept-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.brand-icon { width: 30px; height: 30px; vertical-align: middle; margin-right: 8px; }
 
 .search-panel input {
   width: 100%;

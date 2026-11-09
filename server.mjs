@@ -35,6 +35,7 @@ export function createCardwrightServer(options = {}) {
     '/index.html', '/styles.css', '/app.js', '/token-utils.js', '/audit.js',
     '/cropper.js', '/png.js', '/version.js', '/examples/screenshot01.png',
     '/placeholders.js',
+    '/assets/cardwright-icon.png', '/assets/cardwright.ico',
   ]);
 
   function send(req, res, status, body, headers = {}) {

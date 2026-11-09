@@ -1,4 +1,12 @@
-# Cardwright
+<p align="center"><img src="assets/cardwright-icon.png" alt="Cardwright" width="144"></p>
+
+<h1 align="center">Cardwright</h1>
+
+<p align="center">
+  <a href="https://github.com/cyberdeliaAI/Cardwright/actions/workflows/tests.yml"><img src="https://github.com/cyberdeliaAI/Cardwright/actions/workflows/tests.yml/badge.svg?branch=main" alt="Tests"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/cyberdeliaAI/Cardwright" alt="License: MIT"></a>
+  <a href="https://github.com/cyberdeliaAI/Cardwright/releases/latest"><img src="https://img.shields.io/github/v/release/cyberdeliaAI/Cardwright" alt="Latest release"></a>
+</p>
 
 **Current version:** 1.3.0
 
@@ -48,6 +56,16 @@ Extract the archive and open Cardwright. Desktop downloads bundle Electron and t
 same editor/server, so they do not require a separate Node.js installation.
 The desktop profile is separate from your browser's autosave; transfer cards as
 JSON/PNG and use persona preset backup/import for the library.
+
+On macOS you can also install through the publisher-maintained Homebrew tap:
+
+```sh
+brew install --cask cyberdeliaAI/apps/cardwright
+```
+
+Homebrew selects Apple Silicon or Intel and verifies the published archive's
+checksum. Quit Cardwright before `brew upgrade --cask cyberdeliaAI/apps/cardwright`.
+The cask preserves the desktop profile on uninstall.
 
 To run the browser version from source, use Node.js 24 or newer:
 
