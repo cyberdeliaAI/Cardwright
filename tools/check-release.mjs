@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { APP_VERSION } from '../version.js';
+const pkg = JSON.parse(await readFile('package.json', 'utf8'));
+const lock = JSON.parse(await readFile('package-lock.json', 'utf8'));
+assert.equal(pkg.version, APP_VERSION);
+assert.equal(lock.version, APP_VERSION);
+assert.equal(lock.packages[''].version, APP_VERSION);
+assert.ok((await readFile('index.html', 'utf8')).includes(`class="app-version">v${APP_VERSION}</span>`));
+assert.ok((await readFile('README.md', 'utf8')).includes(`**Current version:** ${APP_VERSION}`));
+assert.equal(pkg.devDependencies.electron, '45.2.3');
+if (process.env.RELEASE_TAG) assert.equal(process.env.RELEASE_TAG, `v${APP_VERSION}`);
+for (const file of ['app.js','audit.js','placeholders.js','server.mjs','version.js','cropper.js','png.js','token-utils.js','electron/main.cjs','electron/backend.cjs','electron/preferences.cjs','electron/security.cjs','electron/updates.cjs','electron/smoke.cjs']) execFileSync(process.execPath, ['--check', file]);
+console.log(`Cardwright ${APP_VERSION}: version and syntax checks passed.`);

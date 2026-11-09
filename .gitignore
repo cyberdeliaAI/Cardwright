@@ -11,7 +11,7 @@ desktop.ini
 *.swo
 *~
 
-# Node (if you add build tooling later)
+# Node and desktop packaging
 node_modules/
 npm-debug.log*
 yarn-error.log*
@@ -37,3 +37,5 @@ custom_notes.md
 # Other Directories
 SillyTavernDocs/
 tests/
+!electron/tests/
+!electron/tests/*.test.cjs

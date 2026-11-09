@@ -1,0 +1,135 @@
+name: Desktop builds
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      sign_macos:
+        description: Sign and notarize macOS test artifacts (does not publish a release)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and verify · ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            target: macos-arm64
+            platform: mac
+            arch: arm64
+          - os: macos-15-intel
+            target: macos-x64
+            platform: mac
+            arch: x64
+          - os: windows-2022
+            target: windows-x64
+            platform: win
+            arch: x64
+          - os: ubuntu-22.04
+            target: linux-x64
+            platform: linux
+            arch: x64
+    env:
+      SIGN_MACOS: ${{ matrix.platform == 'mac' && (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.sign_macos)) && '1' || '' }}
+      RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked build dependencies
+        run: npm ci
+      - name: Check versions and syntax
+        run: node tools/check-release.mjs
+      - name: Regression tests
+        run: npm test
+      - name: Install Linux display dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2
+      - name: Package desktop application
+        if: env.SIGN_MACOS != '1'
+        run: npm run dist -- --${{ matrix.platform }} --${{ matrix.arch }}
+      - name: Sign and notarize macOS application
+        if: env.SIGN_MACOS == '1'
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npm run dist -- --config electron/signed.cjs --mac --${{ matrix.arch }}
+      - name: Verify extracted desktop download (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node tools/verify-packages.mjs
+      - name: Verify extracted desktop download
+        if: runner.os != 'Linux'
+        env:
+          CARDWRIGHT_SIGNED_MAC: ${{ env.SIGN_MACOS }}
+        run: node tools/verify-packages.mjs
+      - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+        with:
+          name: cardwright-${{ matrix.target }}
+          path: |
+            dist/cardwright-*.zip
+            dist/cardwright-*.tar.gz
+            dist/cardwright-*.sha256
+          if-no-files-found: error
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-${{ matrix.target }}
+          path: build/reports/*.json
+          if-no-files-found: ignore
+          retention-days: 3
+
+  publish:
+    name: Publish verified desktop downloads
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cardwright-*
+          path: downloads
+          merge-multiple: true
+      - name: Check complete download set and checksums
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, os
+          from pathlib import Path
+          version = os.environ['RELEASE_TAG'].removeprefix('v')
+          for target, ext in [('mac-arm64','zip'),('mac-x64','zip'),('win-x64','zip'),('linux-x64','tar.gz')]:
+              name = f'cardwright-{version}-{target}.{ext}'
+              archive = Path('downloads') / name
+              expected = archive.with_name(name + '.sha256').read_text().split()[0]
+              if hashlib.sha256(archive.read_bytes()).hexdigest() != expected:
+                  raise SystemExit(f'Checksum mismatch: {name}')
+          PY
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release create "$RELEASE_TAG" downloads/* --verify-tag --title "Cardwright $RELEASE_TAG" --notes-file RELEASE_NOTES.md --latest

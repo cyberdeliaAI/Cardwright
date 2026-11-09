@@ -1,6 +1,6 @@
 # Cardwright
 
-**Current version:** 1.2.0
+**Current version:** 1.3.0
 
 A small standalone character card editor (and lorebook authoring tool) focused on one workflow:
 
@@ -42,6 +42,15 @@ and resets to the default for new or imported cards without converting text.
 
 ## Run
 
+Standalone desktop downloads for macOS Apple Silicon/Intel, Windows x64 and Linux x64
+are provided through [GitHub Releases](https://github.com/cyberdeliaAI/Cardwright/releases).
+Extract the archive and open Cardwright. Desktop downloads bundle Electron and the
+same editor/server, so they do not require a separate Node.js installation.
+The desktop profile is separate from your browser's autosave; transfer cards as
+JSON/PNG and use persona preset backup/import for the library.
+
+To run the browser version from source, use Node.js 24 or newer:
+
 Windows:
 
 ```text
@@ -71,6 +80,19 @@ Then open:
 ```text
 http://127.0.0.1:8787
 ```
+
+For desktop development: `npm ci` followed by `npm run desktop`. `npm test`
+checks data preservation, source drafts, placeholders, server controls and the
+desktop shell. See [desktop build instructions](docs/desktop.md).
+
+### Create a concept from reference text
+
+In **Concept → Create concept from source text**, paste wiki text or character
+notes and choose **Create concept draft**. Review and edit the result; only
+**Apply concept draft** replaces the current concept. Card fields remain intact.
+Source text and unfinished drafts are stored locally and excluded from exports.
+This accepts pasted text up to 24,000 characters, without URL fetching or silent
+truncation. The existing selected AI provider handles the request.
 
 You can override the port with `PORT=...`, but the default is `8787`.
 

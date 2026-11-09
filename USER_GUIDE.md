@@ -174,6 +174,16 @@ Generated fields appear as drafts. You can apply individual fields or apply all.
 
 The concept is saved with the card and used as context for later AI edits.
 
+### Create Concept from Source Text
+
+Open **Create concept from source text** in the Concept tab. Paste relevant wiki text or character notes, then click **Create concept draft**. The selected AI provider prepares a factual brief covering identity/timeline, appearance, personality/motivations, voice/behavior, relationships/setting, canon facts and unknowns. The source is reference data, not instructions. Missing details should be marked as **Not specified**; optional suggestions must be labelled separately from canon. Review the model's claims against your source.
+
+The current concept and card fields stay unchanged while the result is generated. Edit the **Concept draft** and choose **Apply concept draft** to replace only the current concept. **Discard draft** leaves the concept intact. You can then use the existing **Generate card from concept** flow to create reviewable card-field drafts.
+
+If the current concept or source changes, Apply is blocked so an older draft cannot overwrite newer edits. Responses for a replaced card are ignored. Your source text and unfinished draft are saved locally with the current card and restored on reload; they stay out of JSON/PNG exports and persona backups. New/imported cards start with an empty source workspace. Persona presets are used only in the later card-generation step, not to alter extracted source facts.
+
+This feature accepts pasted text only, up to 24,000 characters. Longer input is rejected without trimming. A URL is not fetched; copy relevant text from the page yourself. Neither the original source nor a prepared draft is automatically added to the concept.
+
 ### User Persona Presets
 
 The **User Persona** selector defaults to **None**. A persona describes the player (`{{user}}` in the standard preset) and is used only when generating a card from the concept. It helps shape the relationship, scenario, opening, and example dialogue. Generated fields use your selected placeholder preset; the persona description itself is kept unchanged.

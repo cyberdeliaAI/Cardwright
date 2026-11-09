@@ -1,6 +1,6 @@
 {
   "name": "cardwright",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Standalone Character Card V2 editor with LM Studio AI editing, lorebook support, audit tools, and PNG export.",
   "private": true,
   "type": "module",
@@ -21,6 +21,70 @@
   ],
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test data-preservation.test.mjs server-security.test.mjs placeholders.test.mjs"
+    "test": "node --test data-preservation.test.mjs server-security.test.mjs placeholders.test.mjs electron/tests/*.test.cjs",
+    "desktop": "electron .",
+    "pack": "electron-builder --dir --publish never",
+    "dist": "electron-builder --publish never",
+    "test:desktop": "node --test electron/tests/*.test.cjs",
+    "smoke:desktop": "node tools/smoke-electron.mjs"
+  },
+  "devDependencies": {
+    "@electron/fuses": "2.1.3",
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0"
+  },
+  "productName": "Cardwright",
+  "author": "Cyberdelia",
+  "main": "electron/main.cjs",
+  "build": {
+    "appId": "nl.cyberdelia.cardwright",
+    "productName": "Cardwright",
+    "executableName": "Cardwright",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/*.cjs",
+      "server.mjs",
+      "app.js",
+      "index.html",
+      "styles.css",
+      "audit.js",
+      "token-utils.js",
+      "png.js",
+      "cropper.js",
+      "version.js",
+      "placeholders.js",
+      "assets/icon.png",
+      "package.json",
+      "LICENSE"
+    ],
+    "afterPack": "electron/harden.cjs",
+    "artifactName": "cardwright-${version}-${os}-${arch}.${ext}",
+    "mac": {
+      "target": [
+        "zip"
+      ],
+      "category": "public.app-category.entertainment",
+      "icon": "assets/icon.png",
+      "identity": "-"
+    },
+    "win": {
+      "target": [
+        "zip"
+      ],
+      "icon": "assets/icon.png"
+    },
+    "linux": {
+      "target": [
+        "tar.gz"
+      ],
+      "icon": "assets/icon.png",
+      "category": "Utility"
+    }
+  },
+  "overrides": {
+    "minimatch@>=7.0.0 <11.0.1": "11.0.1"
   }
 }

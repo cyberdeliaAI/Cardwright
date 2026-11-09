@@ -2,12 +2,15 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
+import { extname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { APP_VERSION } from './version.js';
 
 const source = (await readFile(new URL('./server.mjs', import.meta.url), 'utf8'))
   .replace(/^import .*;\r?\n/gm, '')
-  .replace(/const root = fileURLToPath\(new URL\('\.', import.meta.url\)\);/, "const root = '/fixture/';");
+  .replace(/const root = fileURLToPath\(new URL\('\.', import.meta.url\)\);/, "const root = '/fixture/';")
+  .replace(/^export /gm, '')
+  .replace(/import.meta.url/g, "'file:///fixture/server.mjs'") + '\ncreateCardwrightServer();';
 
 // Exercise the real server routing and provider forwarding with isolated HTTP
 // request/response streams; never open a port or contact a real AI service.
@@ -17,7 +20,7 @@ function createTestServer(env = {}) {
   const fileReads = [];
   const timers = [];
   vm.runInNewContext(source, {
-    URL, Buffer, extname, join, normalize, APP_VERSION,
+    URL, Buffer, extname, join, resolve, fileURLToPath, APP_VERSION,
     process: { env: { PORT: '8787', ...env }, exit() { throw new Error('Unexpected exit'); } },
     console: { log() {}, warn() {} },
     setTimeout(callback) { timers.push(callback); },

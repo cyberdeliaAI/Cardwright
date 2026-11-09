@@ -408,6 +408,13 @@ label.button.primary {
   margin: 0;
 }
 
+.source-concept-panel { margin-top: 16px; border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+.source-concept-panel summary { cursor: pointer; font-weight: 600; }
+.source-concept-body { display: grid; gap: 10px; padding-top: 12px; }
+.source-concept-body .fineprint { margin: 0; }
+.source-concept-body textarea { min-height: 140px; }
+.source-concept-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
 .search-panel input {
   width: 100%;
   min-width: 0;

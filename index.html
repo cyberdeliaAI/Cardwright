@@ -10,7 +10,7 @@
   <main class="app">
     <header class="topbar">
       <div>
-        <h1 class="brand-title">Cardwright <span id="appVersion" class="app-version">v1.2.0</span></h1>
+        <h1 class="brand-title">Cardwright <span id="appVersion" class="app-version">v1.3.0</span></h1>
         <div class="topbar-meta">
           <p id="cardSummary">Create or load a character card to begin.</p>
           <span id="aiStatus" class="ai-status idle" role="status" aria-live="polite">
@@ -103,6 +103,25 @@
             </div>
             <p class="field-guidance">Describe your character idea — who they are, the vibe, the setting, what makes them fun to roleplay. The AI drafts all the card fields from this, and keeps it as context for later edits.</p>
             <textarea id="conceptInput" placeholder="e.g. A weary lighthouse keeper on a haunted coast who speaks in clipped sentences and secretly writes poetry. Drawn to {{user}} but terrified of being known..." disabled></textarea>
+            <details id="sourceConceptPanel" class="source-concept-panel">
+              <summary>Create concept from source text</summary>
+              <div class="source-concept-body">
+                <label for="sourceTextInput">Source text</label>
+                <textarea id="sourceTextInput" rows="7" placeholder="Paste relevant wiki text or character notes here..." disabled></textarea>
+                <p class="fineprint">Paste text, not a URL. Up to 24,000 characters; longer text is rejected without trimming. Source text and drafts are saved locally, outside card exports.</p>
+                <button id="createSourceConceptBtn" class="button" type="button" disabled>Create concept draft</button>
+                <div id="sourceConceptDraftPanel" class="hidden">
+                  <label for="sourceConceptDraftEditor">Concept draft</label>
+                  <p id="sourceConceptScope" class="fineprint"></p>
+                  <textarea id="sourceConceptDraftEditor" rows="8" disabled></textarea>
+                  <div class="source-concept-actions">
+                    <button id="applySourceConceptBtn" class="button primary" type="button" disabled>Apply concept draft</button>
+                    <button id="discardSourceConceptBtn" class="button" type="button" disabled>Discard draft</button>
+                  </div>
+                </div>
+                <p id="sourceConceptStatus" class="fineprint" role="status" aria-live="polite"></p>
+              </div>
+            </details>
             <section class="persona-panel" aria-label="User persona presets">
               <label for="personaPresetSelect">User Persona</label>
               <select id="personaPresetSelect" disabled><option value="">None</option></select>
